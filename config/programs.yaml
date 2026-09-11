@@ -1,0 +1,90 @@
+# The single source of truth for accelerator-specific program data.
+#
+# `discord_servers` contains public Discord guild IDs with the widget enabled.
+# The Discord connector only reads the public widget endpoint; it does not
+# access private communities or authenticated Discord data.
+programs:
+  - id: yc_current
+    name: Y Combinator
+    canonical_program_id: yc_current
+    batch: F26
+    current_batch: F26
+    supported_batches:
+      - id: F26
+        name: Fall 2026
+        directory_url: https://www.ycombinator.com/companies?batch=Fall%202026
+        keywords:
+          - YC F26
+          - Y Combinator Fall 2026
+          - ycombinator f26
+      - id: S26
+        name: Summer 2026
+        directory_url: https://www.ycombinator.com/companies?batch=Summer%202026
+        historical: true
+        keywords:
+          - YC S26
+          - Y Combinator Summer 2026
+          - ycombinator s26
+    active: true
+    detection_strategy: directory
+    directory_url: https://www.ycombinator.com/companies?batch=Fall%202026
+    directory_search_index: YCCompany_production
+    directory_detail_url_template: https://www.ycombinator.com/companies/{slug}
+    talent_page_url: null
+    substack_rss_url: null
+    blog_urls: []
+    # Optional public personal/company website URL templates; `{query}` is substituted.
+    website_urls: []
+    # Optional additional public search URL templates; `{query}` is substituted.
+    social_search_urls: []
+    # Public-widget enabled guild IDs only, e.g. ["123456789012345678"].
+    discord_servers: []
+    demo_day: null
+    base_confidence: 0.97
+    keywords:
+      - YC F26
+      - Y Combinator Fall 2026
+      - ycombinator f26
+    entity_id_prefix: yc
+    color: "#f97316"
+
+  
+  - id: speedrun_current
+    name: a16z Speedrun
+    canonical_program_id: speedrun_current
+    batch: SR007
+    current_batch: SR007
+    supported_batches:
+      - id: SR007
+        name: Speedrun 007
+        directory_url: "https://speedrun-api.a16z.com/api/companies/companies/?cohort=SR007&limit=100"
+        keywords:
+          - speedrun SR007
+          - speedrun 007
+          - a16z speedrun
+          - SR007
+      - id: SR006
+        name: Speedrun 006
+        historical: true
+        keywords:
+          - speedrun SR006
+          - speedrun 006
+          - SR006
+    active: true
+    detection_strategy: triangulation
+    directory_url: "https://speedrun-api.a16z.com/api/companies/companies/?cohort=SR007&limit=100"
+    talent_page_url: https://speedrun.a16z.com/talent
+    substack_rss_url: https://speedrun.substack.com/feed
+    blog_urls: []
+    website_urls: []
+    social_search_urls: []
+    discord_servers: []
+    demo_day: "2026-10-06"
+    base_confidence: 0.75
+    keywords:
+      - speedrun SR007
+      - speedrun 007
+      - a16z speedrun
+      - SR007
+    entity_id_prefix: speedrun
+    color: "#8b5cf6"

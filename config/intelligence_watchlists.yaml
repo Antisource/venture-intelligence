@@ -1,0 +1,51 @@
+version: 1
+description: >-
+  Small, transparent, credential-free public-source watchlist. Operators may
+  disable entries without changing program configuration.
+entries:
+  - id: techcrunch-startups
+    name: TechCrunch Startups
+    kind: publication
+    organization: TechCrunch
+    roles: [DISCOVERY, FUNDING, MARKET_SIGNAL, TEMPORAL_NEWS]
+    feed_urls:
+      - https://techcrunch.com/category/startups/feed/
+    sectors: [startups, venture]
+    active: true
+  - id: techcrunch-venture
+    name: TechCrunch Venture
+    kind: publication
+    organization: TechCrunch
+    roles: [DISCOVERY, FUNDING, INVESTOR_SIGNAL, TEMPORAL_NEWS]
+    feed_urls:
+      - https://techcrunch.com/category/venture/feed/
+    sectors: [venture, funding]
+    active: true
+  - id: a16z-news
+    name: a16z News and Content
+    kind: vc_firm
+    organization: Andreessen Horowitz
+    aliases: [a16z]
+    roles: [DISCOVERY, FUNDING, INVESTOR_SIGNAL, TEMPORAL_NEWS]
+    public_urls:
+      - https://a16z.com/news-content/
+    sectors: [venture]
+    active: true
+  - id: sequoia-companies
+    name: Sequoia Companies
+    kind: vc_firm
+    organization: Sequoia Capital
+    roles: [VERIFICATION, INVESTOR_SIGNAL, TEMPORAL_NEWS]
+    public_urls:
+      - https://www.sequoiacap.com/companies/
+    sectors: [venture]
+    active: true
+  - id: speedrun-newsletter
+    name: a16z Speedrun public newsletter
+    kind: newsletter
+    organization: a16z Speedrun
+    roles: [DISCOVERY, VERIFICATION, TEMPORAL_NEWS]
+    feed_urls:
+      - https://speedrun.substack.com/feed
+    sectors: [games, consumer, accelerator]
+    active: true

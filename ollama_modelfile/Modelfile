@@ -1,0 +1,8 @@
+# Intended for a modest local GPU; actual VRAM residency depends on Ollama,
+# model quantization, context length, and the installed hardware.
+FROM qwen2.5-coder:3b
+PARAMETER num_gpu 999
+PARAMETER num_ctx 4096
+PARAMETER num_predict 400
+PARAMETER temperature 0
+PARAMETER top_p 0.1

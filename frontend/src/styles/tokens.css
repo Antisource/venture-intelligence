@@ -1,0 +1,32 @@
+:root {
+  --vi-font-sans: Inter, Aptos, "Segoe UI Variable", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+  --vi-font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  --vi-bg: #f6f7f4; --vi-bg-subtle: #eef1ec; --vi-sidebar: #f1f3ef;
+  --vi-surface: #fff; --vi-surface-raised: #fafbf8; --vi-surface-soft: #f0f3ee;
+  --vi-text: #18211d; --vi-text-strong: #0d1511; --vi-muted: #69756f; --vi-muted-strong: #4e5c55;
+  --vi-border: #dfe5df; --vi-border-strong: #c9d2cb;
+  --vi-accent: #23684f; --vi-accent-strong: #174a38; --vi-accent-soft: #e3efe9;
+  --vi-on-accent: #fff; --vi-graph-edge: #66766e;
+  --vi-highlight: #d8824b; --vi-highlight-soft: #faeee6;
+  --vi-danger: #b14840; --vi-warning: #956414; --vi-success: #247052;
+  --vi-shadow-sm: 0 1px 2px rgb(23 40 31 / 4%), 0 7px 22px rgb(23 40 31 / 4%);
+  --vi-shadow: 0 20px 55px rgb(23 40 31 / 9%);
+  --vi-radius-xs: 7px; --vi-radius-sm: 10px; --vi-radius-md: 14px; --vi-radius-lg: 20px; --vi-radius-xl: 28px;
+  --page-bg: var(--vi-bg); --sidebar-bg: var(--vi-sidebar); --surface: var(--vi-surface); --surface-raised: var(--vi-surface-raised);
+  --panel-bg: var(--vi-surface); --border: var(--vi-border); --muted: var(--vi-muted); --accent: var(--vi-accent);
+  --accent-strong: var(--vi-accent-strong); --danger: var(--vi-danger); --graph-bg: #f5f8f5; --link-hover: var(--vi-accent-strong);
+  color-scheme: light;
+}
+:root[data-theme="dark"] {
+  --vi-bg: #0f1210; --vi-bg-subtle: #151916; --vi-sidebar: #111512;
+  --vi-surface: #181d19; --vi-surface-raised: #1d231f; --vi-surface-soft: #222924;
+  --vi-text: #e8ece8; --vi-text-strong: #f8faf7; --vi-muted: #9aa59e; --vi-muted-strong: #b9c2bc;
+  --vi-border: #2b342e; --vi-border-strong: #3a453e;
+  --vi-accent: #71b99a; --vi-accent-strong: #9ad4bb; --vi-accent-soft: #1c352a;
+  --vi-on-accent: #102018; --vi-graph-edge: #8fa1b4;
+  --vi-highlight: #e2a174; --vi-highlight-soft: #38291f;
+  --vi-danger: #ee938c; --vi-warning: #e5bc6b; --vi-success: #7bc2a3;
+  --vi-shadow-sm: 0 1px 2px rgb(0 0 0 / 20%), 0 8px 24px rgb(0 0 0 / 10%);
+  --vi-shadow: 0 24px 70px rgb(0 0 0 / 30%); --graph-bg: #0c110e; --link-hover: #fff;
+  color-scheme: dark;
+}
