@@ -20,6 +20,13 @@ Conventional Commit.
 | 0 | `revamp-main` | = `main` @ `88609e6` | n/a | created on origin |
 | 1 | `ci/s0-git-guards` | `revamp-main` | not opened | local, waiting for the gate |
 | 2 | `docs/s0-revamp-baseline` | `ci/s0-git-guards` | not opened | in progress |
+| 3 | `refactor/s0-split-db-module` | `docs/s0-revamp-baseline` | not opened | in progress (worktree 1) |
+| 4 | `refactor/s0-split-shared-models` | link 3 | not opened | in progress (worktree 2) |
+| 5 | `refactor/s0-split-api-routers` | link 4 | not opened | in progress (worktree 3) |
+
+Links 3-5 are cut in parallel from the tip of link 2 and touch disjoint
+files. Each is merged forward into the next (`git merge --no-ff`) as it
+finishes, so the stack stays linear.
 
 ## Preflight (2026-11-20)
 
