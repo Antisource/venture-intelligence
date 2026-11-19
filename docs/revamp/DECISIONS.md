@@ -12,6 +12,9 @@ parity is preserved. Architecture-level choices also get an ADR in
 | D-003 | 2026-11-20 | Gate history-rewrite prevention | No (implements §3.4a) |
 | D-004 | 2026-11-20 | Guard implementation | Partly |
 | D-005 | 2026-11-20 | Agent CLIs for gate and loop | No (owner approved) |
+| D-006 | 2026-11-20 | Shared models keep their public module path | No (implements S0 split) |
+| D-007 | 2026-11-20 | Transitional API forwarding facade | No (implements S0 split) |
+| D-008 | 2026-11-20 | Gate merge commits and the ship protocol | Partly
 
 ## D-001: Claude Code subagents with treehouse worktrees instead of firstmate
 
@@ -107,4 +110,57 @@ providers:
    CLI found before that was GitHub Copilot's.
 3. **Why:** the reviewer and the loop driver use the same model family the
    brief is written for.
+4. **Parity:** process only.
+
+## D-006: Shared models keep `venture_intelligence.shared.models` as their module path
+
+1. **Chosen:** `shared/models.py` became the package `shared/models/` with ten domain
+   modules. Each submodule sets `__name__ = "venture_intelligence.shared.models"` after
+   its imports, so every class keeps its historical `__module__`.
+2. **Owner instruction:** split hotspot files early with zero behaviour change.
+3. **Why:** `SourceAccessMode` exists in both `shared.models` and `batch_discovery.models`,
+   and FastAPI disambiguates the collision with an OpenAPI component name derived from
+   `__module__` (`venture_intelligence__shared__models__SourceAccessMode`). Pydantic also
+   builds core-schema references from `__module__` at class creation, so assigning
+   `__module__` afterwards would not preserve them. Verified identical before and after:
+   75 exported names, 33 model JSON schemas (validation and serialization), 26 enums, and a
+   byte-identical `openapi.json`.
+   **Trade-off:** logging or `inspect` inside those modules would report the package name;
+   the modules do not log. The clean fix is renaming the colliding enum, which changes the
+   public API schema and is deferred to a deliberate, versioned API change.
+4. **Parity:** PARITY rows that reference models are unaffected (same import path).
+
+## D-007: Transitional forwarding facade for moved API handlers
+
+1. **Chosen:** routes moved from `api/app.py` and `api/routers/v1.py` into 17 domain routers.
+   `app.py` is now a 114-line factory. `api/routers/_compat.py` makes the old modules
+   resolve, and forward monkeypatches to, names that now live in the domain routers.
+2. **Owner instruction:** split routers early with zero behaviour change.
+3. **Why:** existing tests monkeypatch names such as `api.app._grounded_analyst_context`;
+   without forwarding, the patch would no longer reach the code that runs and the tests
+   would pass while testing nothing. Verified: 71 flattened routes identical in order,
+   paths, methods, names, status codes, tags and operation IDs; `openapi.json`
+   byte-identical; all 226 former names resolve.
+   **Trade-off:** module-class swapping is unusual. It is transitional: it is removed once
+   tests patch the new module locations (tracked as an S0 follow-up), and no new code may
+   rely on it.
+4. **Parity:** every legacy `/api/*` and `/api/v1/*` route is unchanged.
+
+## D-008: Gate merge commits and the ship protocol
+
+1. **Chosen:** before any branch goes through `no-mistakes`, it is merged forward from its
+   stack base with a Conventional Commit message (`chore(git): merge <base> into <branch>`)
+   and `origin/<base>` is verified to be an ancestor of `HEAD`. The gate's Rebase step then
+   has nothing to integrate.
+2. **Owner instruction:** every commit, including merges made by tools, is a Conventional
+   Commit; the gate must never rewrite pushed history (§3.4a).
+3. **Why:** the rehearsal on a private throwaway repository (`nm-stack-rehearsal`) showed:
+   a CI repair landed as a new commit on top (`fix(gate): ...`); a stacked PR targeted the
+   previous branch (`--base-branch`); and a real conflict with a moved base was integrated
+   with a **merge commit, not a rebase**, so every previously pushed head stayed an
+   ancestor. No rewrite occurred in any case. But that gate-made merge commit is titled
+   `Merge remote-tracking branch 'origin/main' into HEAD`, and no-mistakes has no
+   documented setting for its merge message. Merging forward first means the gate never
+   needs to make one. If a base moves between the check and the gate's fetch, the CI
+   guard flags the commit and it is reported to the owner rather than rewritten.
 4. **Parity:** process only.

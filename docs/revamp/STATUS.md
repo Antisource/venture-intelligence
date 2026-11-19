@@ -4,9 +4,9 @@ _Last updated: 2026-11-20_
 
 ## Current stage
 
-**S0 Foundation: preflight and git guards.** No product code has changed yet.
-Building waits for the push gate (no-mistakes) to work end to end, which
-needs the owner's `gh` and `claude` sign-ins.
+**S0 Foundation.** Git guards, baseline docs and the three hotspot splits
+(storage, shared models, API routers) are done locally and verified
+behaviour-identical. Link 1 is going through the no-mistakes gate.
 
 ## Branch stack
 
@@ -18,15 +18,34 @@ Conventional Commit.
 | # | Branch | Base | PR | State |
 |---|---|---|---|---|
 | 0 | `revamp-main` | = `main` @ `88609e6` | n/a | created on origin |
-| 1 | `ci/s0-git-guards` | `revamp-main` | not opened | local, waiting for the gate |
-| 2 | `docs/s0-revamp-baseline` | `ci/s0-git-guards` | not opened | in progress |
-| 3 | `refactor/s0-split-db-module` | `docs/s0-revamp-baseline` | not opened | in progress (worktree 1) |
-| 4 | `refactor/s0-split-shared-models` | link 3 | not opened | in progress (worktree 2) |
-| 5 | `refactor/s0-split-api-routers` | link 4 | not opened | in progress (worktree 3) |
+| 1 | `ci/s0-git-guards` | `revamp-main` | not opened | in the gate (review fixes) |
+| 2 | `docs/s0-revamp-baseline` | `ci/s0-git-guards` | not opened | ready, waits for link 1 |
+| 3 | `refactor/s0-split-db-module` | `docs/s0-revamp-baseline` | not opened | ready, verified |
+| 4 | `refactor/s0-split-shared-models` | link 3 | not opened | ready, verified |
+| 5 | `refactor/s0-split-api-routers` | link 4 | not opened | ready, verified |
 
 Links 3-5 are cut in parallel from the tip of link 2 and touch disjoint
 files. Each is merged forward into the next (`git merge --no-ff`) as it
 finishes, so the stack stays linear.
+
+## Gate rehearsal (2026-11-20)
+
+Private throwaway repo `Antisource/nm-stack-rehearsal` (safe to delete). Results:
+
+| Check | Result |
+|---|---|
+| CI failure repaired | New `fix(gate): ...` commit on top; no rewrite |
+| Stacked PR base | PR #2 targets `feat/s1-alpha` via `--base-branch` |
+| Conflict with a moved base | Integrated with a merge commit, not a rebase; all pushed heads remain ancestors |
+| Gate merge-commit subject | **Not conventional** (`Merge remote-tracking branch ...`); mitigated by D-008 |
+
+First run failed because npm's `claude.cmd` wrapper mangles JSON arguments through
+cmd.exe; fixed with `agent_path_override` to the native `claude.exe` (global config).
+
+## Combined stack tip verification
+
+On `refactor/s0-split-api-routers` with links 1-4 merged in: `pytest` 375 passed,
+`ruff` clean, `openapi.json` unchanged, `tsc` clean.
 
 ## Preflight (2026-11-20)
 
