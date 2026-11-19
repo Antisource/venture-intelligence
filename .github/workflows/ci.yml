@@ -57,6 +57,15 @@ jobs:
       - uses: astral-sh/setup-uv@v6
       - run: uv sync --all-groups
       - run: uv run ruff check .
+      # Some API tests assert that the built React app is served at /, so
+      # build frontend/dist before running pytest.
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
       - run: uv run pytest -q
 
   frontend:
