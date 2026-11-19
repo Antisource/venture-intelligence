@@ -1,0 +1,5 @@
+#!/bin/sh
+# Refuse pushes to main/revamp-main, plain pushes to origin, bad branch names,
+# and non-conventional commit subjects (see scripts/git/guards.py).
+PY=$(command -v python3 || command -v python) || { echo "guard: python not found" >&2; exit 1; }
+exec "$PY" "$(git rev-parse --show-toplevel)/scripts/git/guards.py" pre-push "$@"

@@ -1,0 +1,78 @@
+name: ci
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+  push:
+    branches: [main, revamp-main]
+
+permissions:
+  contents: read
+
+jobs:
+  guards:
+    name: git guards
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: PR must not target main
+        if: github.event_name == 'pull_request'
+        run: python scripts/git/guards.py pr-base "${{ github.base_ref }}"
+      - name: PR title is a Conventional Commit
+        if: github.event_name == 'pull_request'
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+        run: python scripts/git/guards.py subject "$TITLE"
+      - name: Head branch name
+        if: github.event_name == 'pull_request'
+        run: python scripts/git/guards.py branch "${{ github.head_ref }}"
+      - name: Every PR commit is a Conventional Commit
+        if: github.event_name == 'pull_request'
+        run: >-
+          python scripts/git/guards.py range
+          "${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}"
+      - name: Pushes to protected branches arrive only as PR merges
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # A push to main/revamp-main must correspond to a merged PR; anything
+          # else is a direct push and fails loudly so the owner sees it.
+          prs=$(gh api "repos/${{ github.repository }}/commits/${{ github.sha }}/pulls" --jq 'map(select(.merged_at != null)) | length')
+          if [ "${prs:-0}" = "0" ]; then
+            echo "::error::${{ github.ref_name }} received a direct push (${{ github.sha }}) not tied to a merged PR"
+            exit 1
+          fi
+
+  python:
+    name: offline python suite
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --all-groups
+      - run: uv run ruff check .
+      - run: uv run pytest -q
+
+  frontend:
+    name: frontend lint, types, tests, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --all-groups
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build
