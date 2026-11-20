@@ -4,8 +4,9 @@ shared/models — complete domain model for the Venture Intelligence OS.
 Every concept referenced in the design doc has a corresponding Pydantic
 model in this package.  Nothing downstream invents its own types; everything
 imports from ``venture_intelligence.shared.models``, which re-exports every
-name from the domain modules below (explicit ``X as X`` re-exports, no
-``__all__``, so the namespace matches the former single-file module).
+name from the domain modules below (explicit ``X as X`` re-exports, and an
+``__all__`` limiting ``import *`` to the former single-file module's public
+names, so the submodule names are not star-exported).
 
 Modules:
   events      §12 canonical event schema, §13 EventType taxonomy, sources
@@ -248,3 +249,78 @@ from venture_intelligence.shared.models.research import (
 from venture_intelligence.shared.models.research import (
     WebsiteLifecycleSignal as WebsiteLifecycleSignal,
 )
+
+__all__ = [
+    "AcceleratorProgram",
+    "Alert",
+    "AlertLifecycleEvent",
+    "AlertLifecycleStatus",
+    "Any",
+    "BaseModel",
+    "CRMActionType",
+    "CRMEvent",
+    "CRMFeedbackKind",
+    "CRMRecord",
+    "CRMStage",
+    "CRM_TRANSITIONS",
+    "CanonicalEvent",
+    "Company",
+    "DIMENSION_WEIGHTS",
+    "EntityType",
+    "Enum",
+    "EvaluationResult",
+    "EventType",
+    "Evidence",
+    "EvidenceAttributionStatus",
+    "Feature",
+    "Field",
+    "FounderRanking",
+    "GraphEdge",
+    "GraphEdgeType",
+    "GraphNode",
+    "GraphNodeType",
+    "HistoricalWebObservation",
+    "Hypothesis",
+    "Investigation",
+    "InvestigationStatus",
+    "Observation",
+    "Person",
+    "PersonClassification",
+    "PersonType",
+    "RankingDimension",
+    "Recommendation",
+    "RecommendationAction",
+    "RecommendationLifecycleEvent",
+    "RecommendationLifecycleStatus",
+    "ResearchBudget",
+    "ResearchDiscoveryMethod",
+    "ResearchEntity",
+    "ResearchEvidence",
+    "ResearchHypothesis",
+    "ResearchIdentityStatus",
+    "ResearchProgramStatus",
+    "ResearchProviderSkip",
+    "ResearchQuery",
+    "ResearchQueryIntent",
+    "ResearchRejectedResult",
+    "ResearchRun",
+    "ResearchSource",
+    "ResearchSourceStatus",
+    "ResearchTarget",
+    "ResearchTargetType",
+    "Signal",
+    "SignalType",
+    "Source",
+    "SourceAccessMode",
+    "SourceOperationStatus",
+    "SpeedrunEventType",
+    "TemporalPrecision",
+    "TemporalStatus",
+    "TemporalValidity",
+    "WebsiteLifecycleSignal",
+    "datetime",
+    "field_validator",
+    "model_validator",
+    "timezone",
+    "uuid4",
+]

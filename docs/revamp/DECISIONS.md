@@ -12,7 +12,7 @@ parity is preserved. Architecture-level choices also get an ADR in
 | D-003 | 2026-11-20 | Gate history-rewrite prevention | No (implements §3.4a) |
 | D-004 | 2026-11-20 | Guard implementation | Partly |
 | D-005 | 2026-11-20 | Agent CLIs for gate and loop | No (owner approved) |
-| D-006 | 2026-11-20 | Shared models keep their public module path | No (implements S0 split) |
+| D-006 | 2026-11-20 | Shared models package module path | No (implements S0) |
 | D-007 | 2026-11-20 | Transitional API forwarding facade | No (implements S0 split) |
 | D-008 | 2026-11-20 | Gate merge commits and the ship protocol | Partly |
 
@@ -117,23 +117,26 @@ providers:
    brief is written for.
 4. **Parity:** process only.
 
-## D-006: Shared models keep `venture_intelligence.shared.models` as their module path
+## D-006: Shared model submodules keep the historical `__module__`
 
-1. **Chosen:** `shared/models.py` became the package `shared/models/` with ten domain
-   modules. Each submodule sets `__name__ = "venture_intelligence.shared.models"` after
-   its imports, so every class keeps its historical `__module__`.
-2. **Owner instruction:** split hotspot files early with zero behaviour change.
-3. **Why:** `SourceAccessMode` exists in both `shared.models` and `batch_discovery.models`,
-   and FastAPI disambiguates the collision with an OpenAPI component name derived from
-   `__module__` (`venture_intelligence__shared__models__SourceAccessMode`). Pydantic also
-   builds core-schema references from `__module__` at class creation, so assigning
-   `__module__` afterwards would not preserve them. Verified identical before and after:
-   75 exported names, 33 model JSON schemas (validation and serialization), 26 enums, and a
-   byte-identical `openapi.json`.
-   **Trade-off:** logging or `inspect` inside those modules would report the package name;
-   the modules do not log. The clean fix is renaming the colliding enum, which changes the
-   public API schema and is deferred to a deliberate, versioned API change.
-4. **Parity:** PARITY rows that reference models are unaffected (same import path).
+1. **Chosen:** each module in `backend/venture_intelligence/shared/models/`
+   sets `__name__ = "venture_intelligence.shared.models"` after its imports,
+   so every class keeps the `__module__` it had in the former single-file
+   `shared/models.py`. The package `__init__.py` re-exports every name, with
+   an `__all__` that keeps `import *` to the former module's public names
+   (`tests/test_shared_models_star_import.py`).
+2. **Owner instruction:** split the hotspot file with zero behaviour change.
+3. **Why:** `SourceAccessMode` also exists in `batch_discovery.models`, and
+   FastAPI names the colliding OpenAPI component from `__module__`
+   (`venture_intelligence__shared__models__SourceAccessMode`). Pydantic
+   builds core-schema refs from `__module__` at class creation, so assigning
+   `__module__` afterwards would not preserve them. The models modules do
+   not log, so the overridden `__name__` affects no logger names.
+   **Trade-off:** `__module__`-based introspection points at the package,
+   not the defining submodule. Renaming the colliding enum would change the public API
+   schema and is deferred to a deliberate versioned API change.
+4. **Parity:** `frontend/src/api/openapi.json` is byte-identical; model
+   JSON schemas, enum members and `__module__` values are unchanged.
 
 ## D-007: Transitional forwarding facade for moved API handlers
 
