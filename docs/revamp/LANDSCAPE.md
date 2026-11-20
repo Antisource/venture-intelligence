@@ -82,7 +82,9 @@ survey had 250+ respondents, ran March to April 2026, and calls itself unsponsor
 **Inference, overall:** we are not a Harmonic replacement. We are a thesis-specific, explainable
 complement that a fund runs alongside, or instead of, a database it cannot afford.
 
-## 4. Roadmap: what to cut or defer
+## 4. Proposed deferrals (hypotheses pending owner approval, not scope cuts)
+
+These are the CEO agent's recommendations. Every feature in the brief stays in scope until the owner explicitly approves a deferral.
 
 **Inference throughout, with supporting evidence cited.**
 
