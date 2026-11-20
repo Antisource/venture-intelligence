@@ -22,7 +22,9 @@ jobs:
           python-version: "3.12"
       - name: PR must not target main
         if: github.event_name == 'pull_request'
-        run: python scripts/git/guards.py pr-base "${{ github.base_ref }}"
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: python scripts/git/guards.py pr-base "$BASE_REF"
       - name: PR title is a Conventional Commit
         if: github.event_name == 'pull_request'
         env:
@@ -30,24 +32,41 @@ jobs:
         run: python scripts/git/guards.py subject "$TITLE"
       - name: Head branch name
         if: github.event_name == 'pull_request'
-        run: python scripts/git/guards.py branch "${{ github.head_ref }}"
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+        run: python scripts/git/guards.py branch "$HEAD_REF"
       - name: Every PR commit is a Conventional Commit
         if: github.event_name == 'pull_request'
-        run: >-
-          python scripts/git/guards.py range
-          "${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}"
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: python scripts/git/guards.py range "$BASE_SHA..$HEAD_SHA"
       - name: Pushes to protected branches arrive only as PR merges
         if: github.event_name == 'push'
         env:
           GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+          REF_NAME: ${{ github.ref_name }}
         run: |
           # A push to main/revamp-main must correspond to a merged PR; anything
           # else is a direct push and fails loudly so the owner sees it.
-          prs=$(gh api "repos/${{ github.repository }}/commits/${{ github.sha }}/pulls" --jq 'map(select(.merged_at != null)) | length')
+          prs=$(gh api "repos/$REPO/commits/$SHA/pulls" --jq 'map(select(.merged_at != null)) | length')
           if [ "${prs:-0}" = "0" ]; then
-            echo "::error::${{ github.ref_name }} received a direct push (${{ github.sha }}) not tied to a merged PR"
+            echo "::error::$REF_NAME received a direct push ($SHA) not tied to a merged PR"
             exit 1
           fi
+      - name: Every pushed commit is a Conventional Commit
+        if: github.event_name == 'push'
+        env:
+          BEFORE: ${{ github.event.before }}
+          SHA: ${{ github.sha }}
+        run: |
+          if [ "$BEFORE" = "0000000000000000000000000000000000000000" ]; then
+            echo "Branch creation push; no previous tip to diff against."
+            exit 0
+          fi
+          python scripts/git/guards.py range "$BEFORE..$SHA"
 
   python:
     name: offline python suite
