@@ -14,7 +14,7 @@ parity is preserved. Architecture-level choices also get an ADR in
 | D-005 | 2026-11-20 | Agent CLIs for gate and loop | No (owner approved) |
 | D-006 | 2026-11-20 | Shared models keep their public module path | No (implements S0 split) |
 | D-007 | 2026-11-20 | Transitional API forwarding facade | No (implements S0 split) |
-| D-008 | 2026-11-20 | Gate merge commits and the ship protocol | Partly
+| D-008 | 2026-11-20 | Gate merge commits and the ship protocol | Partly |
 
 ## D-001: Claude Code subagents with treehouse worktrees instead of firstmate
 
