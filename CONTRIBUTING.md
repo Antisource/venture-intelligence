@@ -12,6 +12,22 @@ Thank you for helping improve Venture Intelligence. This is an evidence-oriented
 
 Keep pull requests focused. Do not combine unrelated formatting, generated artifacts, connector expansion, and product behavior in one change.
 
+## Commits, branches, and pushes
+
+Commit subjects, merge commits, and PR titles must be
+[Conventional Commits 1.0.0](https://www.conventionalcommits.org/en/v1.0.0/);
+branch names follow `<type>/s<N>-<kebab-description>`; PRs must not target
+`main`, and nothing is pushed directly to `main` or `revamp-main`.
+`scripts/git/guards.py` owns the exact rules and is shared by the local hooks
+and CI. Enable the hooks once per clone:
+
+```sh
+sh scripts/git/install_hooks.sh
+```
+
+Merge PRs with the PR title as the merge subject; GitHub's default
+`Merge pull request #N ...` subject fails the guard.
+
 ## Local setup
 
 ```powershell
