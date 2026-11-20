@@ -75,7 +75,7 @@ audit tables do not feed the operational pipeline. See [`EVALUATION.md`](EVALUAT
 
 The authoritative backend source is `backend/venture_intelligence/`, installed
 under the stable import name `venture_intelligence`. There is one backend copy;
-`storage/db.py` owns SQLite schema and
+`storage/db/` owns SQLite schema and
 serialization. `shared/models.py` owns typed event, evidence, research, and
 analyst contracts. `connectors/` owns public-source collection, while
 `pipeline/` owns deterministic derived state.
