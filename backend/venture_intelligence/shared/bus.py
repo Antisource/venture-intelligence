@@ -4,7 +4,7 @@ shared/bus.py — SQLite-backed event bus.
 Implements the pub/sub contract described in §13.
 
 Design:
-  The event_queue table (created by db.py) acts as a durable message queue.
+  The event_queue table (created by storage/db/schema.py) acts as a durable message queue.
   Each (event_id, worker) pair is a separate queue entry with its own status.
   This gives every worker independent, exactly-once delivery per event.
 

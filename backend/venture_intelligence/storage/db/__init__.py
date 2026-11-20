@@ -1,5 +1,5 @@
 """
-storage/db.py — SQLite database layer.
+storage/db/ — SQLite database layer (package composed from domain mixins).
 
 Responsibilities:
   1. DDL — create all tables on first run, migrate schema if needed
