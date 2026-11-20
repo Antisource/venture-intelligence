@@ -7,8 +7,10 @@ to verify" names an existing pytest function (`tests/*.py`) or a vitest `it(...)
 (`frontend/src/test/*`). "needs test" means no existing test exercises the capability at
 that entry point; write one before rewriting it.
 
-Totals: 353 items (278 capabilities + 75 environment variables). 143 items have no test,
-79 of them outside the env-var rows.
+Totals: 353 items (278 capabilities + 75 environment variables). 154 items are marked
+"needs test" (80 capabilities, 74 env vars), and 7 more capabilities are only partly
+covered ("needs test" with a related test noted), so 161 items need new tests, 87 of them
+outside the env-var rows.
 
 | Area | Items |
 |---|---:|
