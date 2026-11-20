@@ -49,6 +49,10 @@ parity is preserved. Architecture-level choices also get an ADR in
 
 ## D-003: Prevent gate-driven history rewrites of stacked branches
 
+- **Owner instruction:** brief §3.4a: the gate must not rewrite a pushed
+  branch that later stacked branches depend on; rehearse first and stop if
+  it cannot be prevented.
+
 Settings in `~/.no-mistakes/config.yaml`:
 
 ```yaml
@@ -81,6 +85,7 @@ providers:
 - **Stacked PR bases:** pushes use `no-mistakes axi run --base-branch
   <previous stack branch>`, the documented per-run override, because
   `pr.base_branch` is a single per-repo value.
+- **Parity:** process only; no product capability affected.
 
 ## D-004: Guards are one stdlib checker shared by hooks and CI
 
