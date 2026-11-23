@@ -89,8 +89,7 @@ def render(decisions_dir: Path = DECISIONS_DIR) -> str:
     if duplicates:
         raise ValueError(f"duplicate decision ids: {', '.join(duplicates)}")
     rows = [
-        f"| {d.ident} | {d.date} | {d.area} | {d.differs} | "
-        f"[{d.title}](decisions/{d.path.name}) |"
+        f"| {d.ident} | {d.date} | {d.area} | {d.differs} | [{d.title}](decisions/{d.path.name}) |"
         for d in decisions
     ]
     return HEADER + "\n".join(rows) + "\n"
@@ -108,8 +107,10 @@ def main(argv: list[str] | None = None) -> int:
     current = INDEX.read_text(encoding="utf-8").replace("\r\n", "\n") if INDEX.exists() else ""
     if args.check:
         if current != expected:
-            print("decision-index: DECISIONS.md is stale; run scripts/docs/decision_index.py",
-                  file=sys.stderr)
+            print(
+                "decision-index: DECISIONS.md is stale; run scripts/docs/decision_index.py",
+                file=sys.stderr,
+            )
             return 1
         return 0
     INDEX.write_text(expected, encoding="utf-8", newline="\n")

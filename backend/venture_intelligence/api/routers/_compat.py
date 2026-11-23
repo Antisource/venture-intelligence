@@ -30,6 +30,9 @@ class _ForwardingModule(ModuleType):
             raise AttributeError(f"module {self.__name__!r} has no attribute {name!r}")
         return vars(owners[0])[name]
 
+    # Owners a forwarded name was deleted from. ``mock.patch`` restores a
+    # non-local attribute by ``delattr`` then ``setattr``; the restore must reach
+    # those owners again rather than land only on the facade.
     _deleted_owners: dict[str, list[ModuleType]]
 
     def __setattr__(self, name: str, value: Any) -> None:

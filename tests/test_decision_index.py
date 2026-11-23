@@ -30,8 +30,7 @@ def _write(directory: Path, name: str, text: str) -> None:
 
 def test_index_lists_decisions_in_id_order_with_links(tmp_path: Path) -> None:
     body = (
-        "- **Date:** 2026-11-23\n- **Area:** Area {n}\n"
-        "- **Differs from owner instruction:** No\n"
+        "- **Date:** 2026-11-23\n- **Area:** Area {n}\n- **Differs from owner instruction:** No\n"
     )
     _write(tmp_path, "D-010-later.md", "# D-010: Later\n\n" + body.format(n=10))
     _write(tmp_path, "D-002-earlier.md", "# D-002: Earlier\n\n" + body.format(n=2))
@@ -47,8 +46,11 @@ def test_index_lists_decisions_in_id_order_with_links(tmp_path: Path) -> None:
     ("name", "text"),
     [
         ("D-001-x.md", "# D-001: X\n\n- **Date:** 2026-11-23\n- **Area:** A\n"),
-        ("D-001-x.md", "# D-002: X\n\n- **Date:** d\n- **Area:** a\n"
-         "- **Differs from owner instruction:** No\n"),
+        (
+            "D-001-x.md",
+            "# D-002: X\n\n- **Date:** d\n- **Area:** a\n"
+            "- **Differs from owner instruction:** No\n",
+        ),
         ("decision-1.md", "# D-001: X\n"),
     ],
 )
