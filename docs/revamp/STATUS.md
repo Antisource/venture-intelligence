@@ -69,13 +69,13 @@ Sign-ins were run from the app's Terminal panel by physical path.
 
 ## Waiting on the owner
 
-1. `gh auth login`
-2. `claude` (sign in once)
+1. Done (2026-11-20): `gh auth login`.
+2. Done (2026-11-20): `claude` sign-in.
 3. Decide on the CEO agent's proposed deferrals in `LANDSCAPE.md` (mobile
    channel, Teams, warm-intro paths, CRM-lite scope). The brief forbids
    dropping features without owner approval, so all of them stay in scope
    until the owner says otherwise.
-4. Optional: enable branch protection on `main` and `revamp-main` (require
-   PRs; block direct pushes and force-pushes), and set the repo's default
-   merge-commit message to "Pull request title" so merge commits stay
-   Conventional Commits.
+4. Set the repo's default merge-commit message to "Pull request title" so
+   GitHub merge commits stay Conventional Commits.
+5. Optional: enable branch protection on `main` and `revamp-main` (require
+   PRs; block direct pushes and force-pushes).
