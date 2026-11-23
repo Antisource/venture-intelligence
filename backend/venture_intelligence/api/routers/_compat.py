@@ -30,8 +30,11 @@ class _ForwardingModule(ModuleType):
             raise AttributeError(f"module {self.__name__!r} has no attribute {name!r}")
         return vars(owners[0])[name]
 
+    _deleted_owners: dict[str, list[ModuleType]]
+
     def __setattr__(self, name: str, value: Any) -> None:
-        owners = self._owners(name)
+        deleted = self._deleted_owners.pop(name, [])
+        owners = self._owners(name) or deleted
         if not owners:
             super().__setattr__(name, value)
             return
@@ -45,6 +48,7 @@ class _ForwardingModule(ModuleType):
             return
         for module in owners:
             delattr(module, name)
+        self._deleted_owners[name] = owners
 
     def __dir__(self) -> list[str]:
         names = set(super().__dir__())
@@ -59,5 +63,5 @@ def forward_missing_attributes(module_name: str, *targets: ModuleType) -> None:
     module.__class__ = type(
         "_ForwardingModule",
         (_ForwardingModule,),
-        {"_forward_to": tuple(targets), "__module__": __name__},
+        {"_forward_to": tuple(targets), "_deleted_owners": {}, "__module__": __name__},
     )
