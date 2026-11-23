@@ -72,6 +72,7 @@ DATA_PATH_SETTINGS = (
     "email_config_path",
 )
 
+
 def _isolate_settings() -> None:
     defaults = Settings.model_construct()  # code defaults only: no .env, no environment
     for name in Settings.model_fields:
