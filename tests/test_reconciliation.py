@@ -168,7 +168,7 @@ async def test_crawlee_adapter_invocation_is_bounded(monkeypatch) -> None:
     result = await crawler.fetch_rendered_text("https://example.test")
     assert result.ok
     assert calls and calls[0][0][0] == "node"
-    assert calls[0][0][1].endswith("scripts\\crawlee_public_fetcher.mjs")
+    assert Path(calls[0][0][1]).parts[-2:] == ("scripts", "crawlee_public_fetcher.mjs")
 
 
 def test_crawlee_runtime_dependencies_are_declared() -> None:
