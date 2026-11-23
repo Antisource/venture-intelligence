@@ -1,32 +1,33 @@
 # Revamp status
 
-_Last updated: 2026-11-20_
+_Last updated: 2026-11-23_
 
 ## Current stage
 
-**S0 Foundation.** Git guards, baseline docs and the three hotspot splits
-(storage, shared models, API routers) are done locally and verified
-behaviour-identical. Link 1 is going through the no-mistakes gate.
+**S0 Foundation.** The git guards are in `revamp-main` (PR #1). PRs #2-#4
+(baseline docs, `storage/db/` split, `shared/models/` split) were merged into
+stack branches instead of `revamp-main`, because each targeted the previous
+stack branch. One PR with head `refactor/s0-split-shared-models` carries links
+2-4 into `revamp-main`.
 
-## Branch stack
+## Branches and PRs
 
-Merge in this order, each with **"Create a merge commit"** (not squash or
-rebase). Squashing rewrites history and brings conflicts back into the
-stacked branches. Set the merge commit title to the PR title so it stays a
-Conventional Commit.
+Every PR targets `revamp-main`, never a previous stack branch. A PR that
+depends on another open PR says so in its description. Merge in order, each
+with **"Create a merge commit"** (not squash or rebase). Squashing rewrites
+history and brings conflicts back into dependent branches. Set the merge
+commit title to the PR title so `revamp-main` stays Conventional Commits (the
+PR #1 merge commit, "Merge pull request #1 ...", is not conventional).
 
-| # | Branch | Base | PR | State |
+| # | Branch | Target | PR | State |
 |---|---|---|---|---|
 | 0 | `revamp-main` | = `main` @ `88609e6` | n/a | created on origin |
-| 1 | `ci/s0-git-guards` | `revamp-main` | not opened | in the gate (review fixes) |
-| 2 | `docs/s0-revamp-baseline` | `ci/s0-git-guards` | not opened | ready, waits for link 1 |
-| 3 | `refactor/s0-split-db-module` | `docs/s0-revamp-baseline` | not opened | ready, verified |
-| 4 | `refactor/s0-split-shared-models` | link 3 | not opened | ready, verified |
-| 5 | `refactor/s0-split-api-routers` | link 4 | not opened | ready, verified |
-
-Links 3-5 are cut in parallel from the tip of link 2 and touch disjoint
-files. Each is merged forward into the next (`git merge --no-ff`) as it
-finishes, so the stack stays linear.
+| 1 | `ci/s0-git-guards` | `revamp-main` | #1 | merged into `revamp-main` |
+| 2 | `docs/s0-revamp-baseline` | stack branch | #2 | merged into a stack branch; carried to `revamp-main` by the link 2-4 PR |
+| 3 | `refactor/s0-split-db-module` | stack branch | #3 | merged into a stack branch; carried to `revamp-main` by the link 2-4 PR |
+| 4 | `refactor/s0-split-shared-models` | stack branch | #4 | merged into a stack branch; this branch is the head of the link 2-4 PR into `revamp-main` |
+| 5 | `refactor/s0-split-api-routers` | `revamp-main` | not opened | next; own PR, depends on the link 2-4 PR |
+| 6 | `test/s0-isolate-test-environment` | `revamp-main` | not opened | next; own PR, states which PR it depends on |
 
 ## Gate rehearsal (2026-11-20)
 
@@ -46,6 +47,7 @@ cmd.exe; fixed with `agent_path_override` to the native `claude.exe` (global con
 
 On `refactor/s0-split-api-routers` with links 1-4 merged in: `pytest` 375 passed,
 `ruff` clean, `openapi.json` unchanged, `tsc` clean.
+
 
 ## Preflight (2026-11-20)
 
@@ -87,13 +89,13 @@ Sign-ins were run from the app's Terminal panel by physical path.
 
 ## Waiting on the owner
 
-1. `gh auth login`
-2. `claude` (sign in once)
+1. Done (2026-11-20): `gh auth login`.
+2. Done (2026-11-20): `claude` sign-in.
 3. Decide on the CEO agent's proposed deferrals in `LANDSCAPE.md` (mobile
    channel, Teams, warm-intro paths, CRM-lite scope). The brief forbids
    dropping features without owner approval, so all of them stay in scope
    until the owner says otherwise.
-4. Optional: enable branch protection on `main` and `revamp-main` (require
-   PRs; block direct pushes and force-pushes), and set the repo's default
-   merge-commit message to "Pull request title" so merge commits stay
-   Conventional Commits.
+4. Set the repo's default merge-commit message to "Pull request title" so
+   GitHub merge commits stay Conventional Commits.
+5. Optional: enable branch protection on `main` and `revamp-main` (require
+   PRs; block direct pushes and force-pushes).
