@@ -80,9 +80,12 @@ providers:
   throwaway repository before the first real push (§3.4a). If a rewrite of
   a depended-on branch cannot be prevented, the run stops and the owner is
   told.
-- **Stacked PR bases:** pushes use `no-mistakes axi run --base-branch
-  <previous stack branch>`, the documented per-run override, because
-  `pr.base_branch` is a single per-repo value.
+- **Stacked PR bases (superseded):** superseded 2026-11-23 by the owner's
+  instruction: every PR targets `revamp-main` and states which PR it
+  depends on; recorded as D-009. Former practice: ~~pushes use
+  `no-mistakes axi run --base-branch <previous stack branch>`, the
+  documented per-run override, because `pr.base_branch` is a single
+  per-repo value.~~
 - **Parity:** process only; no product capability affected.
 
 ## D-004: Guards are one stdlib checker shared by hooks and CI
