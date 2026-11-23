@@ -20,10 +20,25 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
 @pytest.mark.parametrize("name", DATA_PATH_SETTINGS)
-def test_data_paths_live_outside_the_repository(name: str) -> None:
+def test_data_paths_avoid_the_operators_data_directories(name: str) -> None:
     path = Path(getattr(settings, name)).resolve()
     assert path.is_relative_to(ISOLATED_ROOT.resolve())
-    assert not path.is_relative_to(REPO_ROOT)
+    operator_path = (REPO_ROOT / Settings.model_fields[name].default).resolve()
+    assert path != operator_path
+    for operator_dir in ("data", "knowledge"):
+        assert not path.is_relative_to(REPO_ROOT / operator_dir)
+
+
+def test_settings_ignore_the_operators_dotenv(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    (tmp_path / ".env").write_text("OPERATIONS_LOCK_STALE_SECONDS=1\n", encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
+    assert Settings.model_config["env_file"] != ".env"
+    assert (
+        Settings().operations_lock_stale_seconds
+        == Settings.model_fields["operations_lock_stale_seconds"].default
+    )
 
 
 @pytest.mark.parametrize(
