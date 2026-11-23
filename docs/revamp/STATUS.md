@@ -1,32 +1,33 @@
 # Revamp status
 
-_Last updated: 2026-11-20_
+_Last updated: 2026-11-23_
 
 ## Current stage
 
-**S0 Foundation: preflight and git guards.** No product code has changed yet.
-Building waits for the push gate (no-mistakes) to work end to end, which
-needs the owner's `gh` and `claude` sign-ins.
+**S0 Foundation.** The git guards are in `revamp-main` (PR #1). PRs #2-#4
+(baseline docs, `storage/db/` split, `shared/models/` split) were merged into
+stack branches instead of `revamp-main`, because each targeted the previous
+stack branch. One PR with head `refactor/s0-split-shared-models` carries links
+2-4 into `revamp-main`.
 
-## Branch stack
+## Branches and PRs
 
-Merge in this order, each with **"Create a merge commit"** (not squash or
-rebase). Squashing rewrites history and brings conflicts back into the
-stacked branches. Set the merge commit title to the PR title so it stays a
-Conventional Commit.
+Every PR targets `revamp-main`, never a previous stack branch. A PR that
+depends on another open PR says so in its description. Merge in order, each
+with **"Create a merge commit"** (not squash or rebase). Squashing rewrites
+history and brings conflicts back into dependent branches. Set the merge
+commit title to the PR title so `revamp-main` stays Conventional Commits (the
+PR #1 merge commit, "Merge pull request #1 ...", is not conventional).
 
-| # | Branch | Base | PR | State |
+| # | Branch | Target | PR | State |
 |---|---|---|---|---|
 | 0 | `revamp-main` | = `main` @ `88609e6` | n/a | created on origin |
-| 1 | `ci/s0-git-guards` | `revamp-main` | not opened | local, waiting for the gate |
-| 2 | `docs/s0-revamp-baseline` | `ci/s0-git-guards` | not opened | in progress |
-| 3 | `refactor/s0-split-db-module` | `docs/s0-revamp-baseline` | not opened | in progress (worktree 1) |
-| 4 | `refactor/s0-split-shared-models` | link 3 | not opened | in progress (worktree 2) |
-| 5 | `refactor/s0-split-api-routers` | link 4 | not opened | in progress (worktree 3) |
-
-Links 3-5 are cut in parallel from the tip of link 2 and touch disjoint
-files. Each is merged forward into the next (`git merge --no-ff`) as it
-finishes, so the stack stays linear.
+| 1 | `ci/s0-git-guards` | `revamp-main` | #1 | merged into `revamp-main` |
+| 2 | `docs/s0-revamp-baseline` | stack branch | #2 | merged into a stack branch; carried to `revamp-main` by the link 2-4 PR |
+| 3 | `refactor/s0-split-db-module` | stack branch | #3 | merged into a stack branch; carried to `revamp-main` by the link 2-4 PR |
+| 4 | `refactor/s0-split-shared-models` | stack branch | #4 | merged into a stack branch; this branch is the head of the link 2-4 PR into `revamp-main` |
+| 5 | `refactor/s0-split-api-routers` | `revamp-main` | not opened | next; own PR, depends on the link 2-4 PR |
+| 6 | `test/s0-isolate-test-environment` | `revamp-main` | not opened | next; own PR, states which PR it depends on |
 
 ## Preflight (2026-11-20)
 
