@@ -199,6 +199,36 @@ pnpm dev
 
 Vite serves [http://127.0.0.1:5173](http://127.0.0.1:5173) and proxies API requests to port 8000. Run commands from the repository root. See [Product operations](docs/PRODUCT_OPERATIONS.md) and [Troubleshooting](docs/TROUBLESHOOTING.md).
 
+### Containers (PostgreSQL preview)
+
+With Docker Desktop, Podman or Rancher Desktop running:
+
+```powershell
+docker compose --profile local up --build
+```
+
+This starts PostgreSQL 18 (named volume, not published to the host) and the
+API/UI on [http://127.0.0.1:8000](http://127.0.0.1:8000). `GET /livez` reports
+the process is up; `GET /readyz` checks the stores and answers 503 with a
+reason when one is not ready. The app still stores intelligence in SQLite
+while domains are ported to PostgreSQL (ADR-0001), so `/readyz` reports the
+schema as behind until you migrate it:
+
+```powershell
+docker compose --profile local run --rm api python -m venture_intelligence.storage.pg upgrade
+```
+
+The `demo` profile (`docker compose --profile demo up --build`) runs that
+migration automatically as a one-shot service. Stop with
+`docker compose --profile local down` (add `-v` to delete the volumes).
+
+To copy an existing SQLite database into an upgraded PostgreSQL database
+(`DATABASE_URL` set; the SQLite file is only read):
+
+```powershell
+uv run python -m venture_intelligence.storage.pg import-sqlite --sqlite data/intelligence.db
+```
+
 ## Configuration
 
 Copy `.env.example` to `.env` and change only what you need. The defaults use local SQLite (`data/intelligence.db`), the YAML program registry, bounded public collection, indexed-only social discovery, disabled rendered crawling, and no external notification provider.
