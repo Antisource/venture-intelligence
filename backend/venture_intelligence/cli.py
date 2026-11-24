@@ -222,7 +222,11 @@ def _parser() -> argparse.ArgumentParser:
     demo = commands.add_parser(
         "demo", help="Synthetic demo data (fictional, never real people)."
     ).add_subparsers(dest="action", required=True)
-    demo_seed = demo.add_parser("seed", help="Write the synthetic demo dataset to a new database.")
+    demo_seed = demo.add_parser(
+        "seed",
+        help="Write the synthetic demo dataset to a new database; to reseed, delete it "
+        "or choose a new path.",
+    )
     demo_seed.add_argument(
         "--database",
         required=True,
@@ -230,11 +234,6 @@ def _parser() -> argparse.ArgumentParser:
         help="SQLite path to write; never the operational database.",
     )
     demo_seed.add_argument("--seed", type=int, default=7, help="Deterministic dataset seed.")
-    demo_seed.add_argument(
-        "--overwrite",
-        action="store_true",
-        help="Replace an existing non-empty database file (never the operational one).",
-    )
 
     programs = commands.add_parser("programs").add_subparsers(dest="action", required=True)
     programs.add_parser("list")
@@ -437,7 +436,7 @@ def _sync_command(args: argparse.Namespace) -> Any:
     if args.command == "capabilities":
         return capabilities_for(args.lens)
     if args.command == "demo":
-        return _demo_seeder().seed_database(args.database, seed=args.seed, overwrite=args.overwrite)
+        return _demo_seeder().seed_database(args.database, seed=args.seed)
     registry = get_program_registry()
     database = _database(args.database)
     repository = BatchDiscoveryRepository(database)

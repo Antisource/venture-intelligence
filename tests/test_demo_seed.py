@@ -137,7 +137,7 @@ def test_script_refuses_the_operational_database(
     assert not operational.exists()
 
 
-def test_seed_refuses_an_existing_database_unless_overwrite(tmp_path: Path, capsys) -> None:
+def test_seed_refuses_an_existing_database(tmp_path: Path, capsys) -> None:
     path = tmp_path / "store.db"
     Database(str(path)).write_alert(_seeder().build_dataset(1, companies=1).alerts[0])
     before = _rows(path, "alerts", "alert_id")
@@ -145,11 +145,15 @@ def test_seed_refuses_an_existing_database_unless_overwrite(tmp_path: Path, caps
     assert main(["--json", "demo", "seed", "--database", str(path)]) == 2
     assert "existing database" in json.loads(capsys.readouterr().out)["error"]
     assert _rows(path, "alerts", "alert_id") == before
+    assert _rows(path, "companies", "1") == []
 
-    assert main(["--json", "demo", "seed", "--database", str(path), "--overwrite"]) == 0
-    summary = json.loads(capsys.readouterr().out)
-    assert len(_rows(path, "alerts", "1")) == summary["counts"]["alerts"]
-    assert len(_rows(path, "companies", "1")) == 12
+    assert _seeder().main(["--database", str(path)]) == 2
+    assert "choose a new path" in capsys.readouterr().err
+    assert _rows(path, "alerts", "alert_id") == before
+
+    with pytest.raises(SystemExit) as failure:
+        main(["demo", "seed", "--database", str(path), "--overwrite"])
+    assert failure.value.code == 2
 
 
 def test_seed_rejects_an_out_of_range_company_count(tmp_path: Path) -> None:

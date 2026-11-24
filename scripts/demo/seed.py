@@ -13,11 +13,11 @@ rankings, evidence, CRM and graph views.
 
 Usage::
 
-    uv run python scripts/demo/seed.py --database data/demo.db [--seed 7] [--overwrite]
-    uv run vi demo seed --database data/demo.db [--seed 7] [--overwrite]
+    uv run python scripts/demo/seed.py --database data/demo.db [--seed 7]
+    uv run vi demo seed --database data/demo.db [--seed 7]
 
 Both refuse the operational database (``settings.db_path``) and any existing
-non-empty file unless ``--overwrite`` is given.
+non-empty file; to reseed, delete the demo file or choose a new path.
 """
 
 from __future__ import annotations
@@ -590,7 +590,6 @@ def seed_database(
     *,
     seed: int = DEFAULT_SEED,
     companies: int = DEFAULT_COMPANIES,
-    overwrite: bool = False,
 ) -> dict[str, Any]:
     """Write the synthetic dataset to a new database at ``path`` and return a summary."""
     target = Path(path).resolve()
@@ -599,10 +598,10 @@ def seed_database(
     if not 1 <= companies <= len(_NAME_HEADS):
         raise ValueError(f"companies must be between 1 and {len(_NAME_HEADS)}")
     if target.exists() and target.stat().st_size > 0:
-        if not overwrite:
-            raise ValueError(f"refusing to write demo data into existing database {target}")
-        for suffix in ("", "-wal", "-shm"):
-            Path(f"{target}{suffix}").unlink(missing_ok=True)
+        raise ValueError(
+            f"refusing to write demo data into existing database {target}; "
+            "delete it or choose a new path to reseed"
+        )
     target.parent.mkdir(parents=True, exist_ok=True)
     dataset = build_dataset(seed, companies=companies)
     write_dataset(dataset, Database(str(target)))
@@ -622,10 +621,9 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--database", required=True, help="SQLite path to write.")
     parser.add_argument("--seed", type=int, default=DEFAULT_SEED)
-    parser.add_argument("--overwrite", action="store_true")
     args = parser.parse_args(argv)
     try:
-        summary = seed_database(args.database, seed=args.seed, overwrite=args.overwrite)
+        summary = seed_database(args.database, seed=args.seed)
     except ValueError as error:
         print(f"error: {error}", file=sys.stderr)
         return 2
