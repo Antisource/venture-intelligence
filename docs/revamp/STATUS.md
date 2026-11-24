@@ -1,6 +1,6 @@
 # Revamp status
 
-_Last updated: 2026-11-23_
+_Last updated: 2026-11-24_
 
 ## Current stage
 
@@ -28,13 +28,14 @@ PR #1 merge commit, "Merge pull request #1 ...", is not conventional).
 | 4 | `refactor/s0-split-shared-models` | stack branch | #4 | merged into a stack branch |
 | 2-4 | `refactor/s0-split-shared-models` | `revamp-main` | #5 | carries links 2-4; ready for review, merge first |
 | 5 | `refactor/s0-split-api-routers` | `revamp-main` | #6 | pushed, CI green; depends on #5; draft until the S0 critic loop passes |
-| 6 | `test/s0-isolate-test-environment` | `revamp-main` | this link's PR | depends on #6; test-suite isolation from `.env`, `data/` and SMTP |
+| 6 | `test/s0-isolate-test-environment` | `revamp-main` | #7 | depends on #6; test-suite isolation from `.env`, `data/` and SMTP |
+| 7 | `docs/s0-architecture-adrs` | `revamp-main` | this link's PR | depends on #7; ADR-0001 to ADR-0008 and D-010 to D-021, all Proposed; no code changes |
 
 ## Next actions
 
-1. Owner: merge #5, then #6, then the test-isolation PR, each with "Create a
-   merge commit" titled as the PR.
-2. Agent: finish the rest of S0 (architecture ADRs, Postgres migration path,
+1. Owner: merge #5, then #6, then #7, then the ADR PR, each with "Create a
+   merge commit" titled as the PR. Review the Proposed ADRs (`docs/adr/`).
+2. Agent: finish the rest of S0 (Postgres migration path,
    capability registry and lens skeleton, `vi doctor`, demo database, test and
    critic harnesses), then run the S0 critic loop before marking S0 PRs ready.
 3. After each owner merge: merge `origin/revamp-main` forward through every
