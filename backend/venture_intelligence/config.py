@@ -23,6 +23,9 @@ class Settings(BaseSettings):
     )
 
     db_path: str = "data/intelligence.db"
+    # PostgreSQL URL (ADR-0001). Unset means the SQLite ``db_path`` store is
+    # the only datastore; the Postgres platform is opt-in until domains port.
+    database_url: SecretStr | None = None
     programs_config_path: str = "config/programs.yaml"
     intelligence_watchlist_path: str = "config/intelligence_watchlists.yaml"
     knowledge_dir: str = "knowledge"

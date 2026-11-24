@@ -1,0 +1,1 @@
+"""PostgreSQL platform (ADR-0001, ADR-0002)."""
