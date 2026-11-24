@@ -89,16 +89,16 @@
      `./backups/vi-<timestamp>.dump`, copies the erasure ledger beside it as
      `vi-<timestamp>.erasure.jsonl`, and keeps the last N pairs. The ledger is never
      inside the dump.
-   - `vi admin restore FILE` restores into a fresh database (`pg_restore --clean
-     --if-exists --no-owner`), runs `vi db upgrade`, then replays the erasure ledger:
-     the live ledger, or the newest backed-up copy if the live one is lost. Replay
-     never resolves intents or writes markers against the restored database. It calls
-     `vi_replay_erasure` for every intent without an abort line (a commit line overrides
-     an abort line), marked or unmarked, re-erasing its row ids and re-adding its subject key hash to
+   - `vi admin restore FILE` stops the `api` and `worker` services, restores into a
+     fresh database (`pg_restore --clean --if-exists --no-owner`), runs `vi db upgrade`,
+     then replays the erasure ledger: the live ledger, or the newest backed-up copy if
+     the live one is lost. Replay calls `vi_replay_erasure` for every intent in the
+     ledger, marked or not, re-erasing its row ids and re-adding its subject key hash to
      `subject_suppressions`, the same hash the identity gate (P-227) checks. Subjects
-     erased after the backup therefore stay erased (ADR-0002). If any record fails to replay,
-     restore exits non-zero and readiness keeps failing; it never finishes with erased
-     data restored.
+     erased after the backup therefore stay erased (ADR-0002). The `api` and `worker`
+     restart only after replay finishes, and readiness fails until then. If any record
+     fails to replay, restore exits non-zero, the services stay stopped and readiness
+     keeps failing; it never finishes with erased data restored.
    - Hosted guidance: nightly encrypted dumps (restic, BSD-2, or age, BSD-3) with an
      off-site copy; pgBackRest (MIT) for point-in-time recovery if needed.
 8. **Sizing.** These are starting points; the S6 load test verifies them.

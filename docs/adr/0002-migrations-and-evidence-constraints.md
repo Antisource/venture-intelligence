@@ -75,8 +75,8 @@
      **Replay mode:** `vi_replay_erasure(subject_key_hash, row_ids, request_id)` applies
      the same tombstoning to the listed row ids, deletes their derived rows, writes
      `erasure_log` and adds the hash to `subject_suppressions`. It needs no
-     `subject_ref`, is idempotent, and only the owner role that runs restore may execute
-     it (ADR-0005).
+     `subject_ref`, is idempotent, and only the owner role (restore, ADR-0005) and the
+     `vi_erasure` role (the erasure service's retry job) may execute it; `vi_app` cannot.
 
      **Erasure ledger outside the database.** `erasure_log` lives in the dump, so a
      restore would lose every erasure made after the backup. The erasure service in the
@@ -86,23 +86,18 @@
      excluded from the database dump and is backed up alongside it (ADR-0005).
      - **Intent:** before the transaction commits, the service appends and fsyncs an
        intent line (request id, subject key hash, erased row ids, timestamp, actor). If
-       the append fails, the erasure rolls back. The erasure transaction runs with
-       `SET LOCAL transaction_timeout = '5min'`, so it cannot commit later than five
-       minutes after its intent.
-     - **Commit marker:** after the transaction commits, it appends and fsyncs a commit
-       line for that request id.
-     - **Abort marker:** only a resolution step against the live database the erasure ran
-       in may write one. At service start and before every backup, each unmarked intent
-       older than 15 minutes is checked against `erasure_log` by request id: a commit
-       line if the row exists, an abort line if not. Younger intents are left unmarked,
-       because their transaction may still be running. A commit line always overrides an
-       abort line.
+       the append fails, the erasure rolls back.
+     - **Commit marker:** after the transaction commits, it appends a commit line for
+       that request id. The marker is for reporting only; nothing reads it to decide
+       whether to erase.
 
-     Restore never resolves intents and never writes markers. It replays every intent
-     that has no abort line, including unmarked ones (ADR-0005). Replaying an erasure
-     that may have rolled back is idempotent and errs toward erasure, so a crash before
-     the commit marker followed by a restore from an older backup cannot bring erased
-     data back.
+     There are no abort lines and no resolution step: an intent is never cancelled. A
+     periodic worker job (ADR-0003), connecting as `vi_erasure`, calls `vi_replay_erasure` for every intent whose
+     request id has no `erasure_log` row, and restore replays every intent in the
+     ledger, marked or not (ADR-0005). Row-id erasure is idempotent, so re-applying an
+     erasure whose original transaction rolled back is the intended outcome: the subject
+     asked to be erased, so the erasure is retried until it succeeds. Erased data
+     therefore cannot come back through a restore, whatever crashed and whenever.
    - **Reconcile** (P-103, P-243) may delete tier-2 rows only. It first copies each row
      into `reconcile_archive(run_id, table, row)`, so polluted CRM and lifecycle history is
      recoverable. Today it is destroyed (`storage/cleanup.py:436-462`). Reconcile never
