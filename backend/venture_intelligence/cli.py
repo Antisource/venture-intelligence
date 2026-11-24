@@ -5,8 +5,10 @@ from __future__ import annotations
 import argparse
 import asyncio
 import hashlib
+import importlib.util
 import json
 import sqlite3
+import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
@@ -217,6 +219,20 @@ def _parser() -> argparse.ArgumentParser:
         default=argparse.SUPPRESS,
         help="Emit machine-readable JSON.",
     )
+    demo = commands.add_parser(
+        "demo", help="Synthetic demo data (fictional, never real people)."
+    ).add_subparsers(dest="action", required=True)
+    demo_seed = demo.add_parser("seed", help="Write the synthetic demo dataset to a new database.")
+    demo_seed.add_argument(
+        "--database",
+        required=True,
+        default=argparse.SUPPRESS,
+        help="SQLite path to write; never the operational database.",
+    )
+    demo_seed.add_argument("--seed", type=int, default=7, help="Deterministic dataset seed.")
+    demo_seed.add_argument(
+        "--companies", type=int, default=12, help="Number of fictional companies (1-16)."
+    )
 
     programs = commands.add_parser("programs").add_subparsers(dest="action", required=True)
     programs.add_parser("list")
@@ -400,9 +416,31 @@ async def _async_command(args: argparse.Namespace) -> Any:
     raise RuntimeError("not an asynchronous command")
 
 
+def _demo_seeder() -> Any:
+    """Load ``scripts/demo/seed.py`` from the source checkout."""
+    path = Path(__file__).resolve().parents[2] / "scripts" / "demo" / "seed.py"
+    if not path.is_file():
+        raise RuntimeError("The demo seeder is only available in a source checkout.")
+    name = "venture_intelligence_demo_seed"
+    if name in sys.modules:
+        return sys.modules[name]
+    spec = importlib.util.spec_from_file_location(name, path)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
 def _sync_command(args: argparse.Namespace) -> Any:
     if args.command == "capabilities":
         return capabilities_for(args.lens)
+    if args.command == "demo":
+        target = Path(args.database).resolve()
+        if target == Path(settings.db_path).resolve():
+            raise ValueError("refusing to write demo data into the operational database")
+        if not 1 <= args.companies <= 16:
+            raise ValueError("--companies must be between 1 and 16")
+        return _demo_seeder().seed_database(target, seed=args.seed, companies=args.companies)
     registry = get_program_registry()
     database = _database(args.database)
     repository = BatchDiscoveryRepository(database)
