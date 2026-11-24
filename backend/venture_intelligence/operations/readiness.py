@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+from collections.abc import Awaitable, Callable
 from enum import Enum
 
+import httpx
 from pydantic import BaseModel, Field
 
 from venture_intelligence.batch_discovery.tools import local_osint_tool_diagnostics
@@ -329,11 +331,112 @@ def system_readiness(
     )
 
 
+class ModelPresence(str, Enum):
+    PRESENT = "PRESENT"
+    MISSING = "MISSING"
+    UNREACHABLE = "UNREACHABLE"
+    NOT_SELECTED = "NOT_SELECTED"
+
+
+class ModelReadiness(BaseModel):
+    """Whether the configured local Ollama model is actually available.
+
+    A missing or unreachable model is reported by name with the command that
+    fixes it, never hidden behind the deterministic fallback (D-021).
+    """
+
+    provider: str = "ollama"
+    model: str
+    status: ModelPresence
+    summary: str
+    action: str | None = None
+
+
+# Returns the model names Ollama reports, or None when Ollama is unreachable.
+ModelProbe = Callable[[str, float], Awaitable[list[str] | None]]
+
+
+async def ollama_tags_probe(base_url: str, timeout: float) -> list[str] | None:
+    """List locally pulled Ollama models; ``None`` when the server is unreachable."""
+    try:
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            response = await client.get(f"{base_url.rstrip('/')}/api/tags")
+            response.raise_for_status()
+        return [str(item.get("name", "")) for item in response.json().get("models", [])]
+    except (httpx.HTTPError, ValueError, TypeError, AttributeError):
+        return None
+
+
+def _model_selected(runtime_settings: Settings) -> bool:
+    analyst_uses_ollama = runtime_settings.analyst_enabled and (
+        runtime_settings.analyst_provider.casefold() in {"qwen", "ollama", "auto"}
+    )
+    return bool(runtime_settings.ollama_enabled or analyst_uses_ollama)
+
+
+def _base_name(name: str) -> str:
+    return name.split(":latest", 1)[0]
+
+
+async def model_readiness(
+    runtime_settings: Settings = settings,
+    *,
+    probe: ModelProbe = ollama_tags_probe,
+) -> ModelReadiness:
+    """Report the configured Ollama model explicitly: present, missing or unreachable."""
+    model = runtime_settings.ollama_model
+    pull = f"ollama pull {model}"
+    if not _model_selected(runtime_settings):
+        return ModelReadiness(
+            model=model,
+            status=ModelPresence.NOT_SELECTED,
+            summary=(
+                "No feature is configured to use Ollama; deterministic extraction "
+                "and analysis are in use."
+            ),
+            action=None,
+        )
+    names = await probe(
+        runtime_settings.ollama_base_url, min(runtime_settings.ollama_timeout_seconds, 5.0)
+    )
+    if names is None:
+        return ModelReadiness(
+            model=model,
+            status=ModelPresence.UNREACHABLE,
+            summary=(
+                f"Ollama is not reachable, so model {model} could not be checked; "
+                "deterministic extraction and analysis are used until it is."
+            ),
+            action=f"Start Ollama, then run: {pull}",
+        )
+    available = {_base_name(name) for name in names} | set(names)
+    if model in available or _base_name(model) in available:
+        return ModelReadiness(
+            model=model,
+            status=ModelPresence.PRESENT,
+            summary=f"Configured model {model} is available in Ollama.",
+        )
+    return ModelReadiness(
+        model=model,
+        status=ModelPresence.MISSING,
+        summary=(
+            f"Configured model {model} is not pulled in Ollama; deterministic extraction "
+            "and analysis are used until it is."
+        ),
+        action=f"Run: {pull}",
+    )
+
+
 __all__ = [
     "EmailRuntimeStatus",
+    "ModelPresence",
+    "ModelProbe",
+    "ModelReadiness",
     "ReadinessComponent",
     "ReadinessStatus",
     "SocialAccessDiagnostic",
     "SystemReadiness",
+    "model_readiness",
+    "ollama_tags_probe",
     "system_readiness",
 ]

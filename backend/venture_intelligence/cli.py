@@ -13,7 +13,7 @@ from typing import Any
 
 from venture_intelligence.agents.analyst import AnalystAgent
 from venture_intelligence.batch_discovery.repository import BatchDiscoveryRepository
-from venture_intelligence.capabilities import Lens, capabilities_for
+from venture_intelligence.capabilities import Lens, capabilities_for, help_hints
 from venture_intelligence.config import settings
 from venture_intelligence.intelligence.service import IntelligenceService
 from venture_intelligence.operations.cycle import (
@@ -23,7 +23,12 @@ from venture_intelligence.operations.cycle import (
     IntelligenceCycleService,
     OperationsStateStore,
 )
-from venture_intelligence.operations.readiness import system_readiness
+from venture_intelligence.operations.readiness import (
+    ModelProbe,
+    model_readiness,
+    ollama_tags_probe,
+    system_readiness,
+)
 from venture_intelligence.operations.validation import run_live_validation
 from venture_intelligence.pipeline.email import EmailNotificationService
 from venture_intelligence.programs import get_program_registry
@@ -62,6 +67,15 @@ def _emit(value: Any, *, as_json: bool) -> None:
             print(f"{item['component']}: {item['status']} — {item['summary']}")
         analyst = payload["analyst"]
         print(f"Local analyst runtime: {analyst['status']} ({analyst.get('provider', 'unknown')})")
+        model = payload.get("model")
+        if model:
+            print(f"Ollama model {model['model']}: {model['status']} — {model['summary']}")
+            if model.get("action"):
+                print(f"  Fix: {model['action']}")
+        if payload.get("help"):
+            print("Next steps:")
+            for hint in payload["help"]:
+                print(f"  {hint}")
         return
     if isinstance(payload, dict) and "lens" in payload and "teasers" in payload:
         print(f"Lens {payload['lens']} ({payload['lens_title']})")
@@ -321,15 +335,24 @@ def _hours(value: str) -> float:
     raise ValueError("interval must use hours, for example 12h")
 
 
+def _doctor_help(model: Any) -> list[str]:
+    steps = [model.action] if model.action else []
+    return steps + help_hints(Lens.L4, exclude={"system_health"})
+
+
 async def _async_command(args: argparse.Namespace) -> Any:
     registry = get_program_registry()
     if args.command == "doctor":
         readiness = system_readiness(
             settings.model_copy(update={"db_path": args.database or settings.db_path})
         )
+        probe = getattr(args, "model_probe", None) or ollama_tags_probe
+        model = await model_readiness(settings, probe=probe)
         return {
             "readiness": readiness,
             "analyst": await AnalystAgent().health(),
+            "model": model,
+            "help": _doctor_help(model),
             "database": str(Path(args.database or settings.db_path).resolve()),
             "secrets_redacted": True,
         }
@@ -583,9 +606,10 @@ def _markdown_export(payload: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def main(argv: list[str] | None = None) -> int:
+def main(argv: list[str] | None = None, *, model_probe: ModelProbe | None = None) -> int:
     parser = _parser()
     args = parser.parse_args(argv)
+    args.model_probe = model_probe  # injected Ollama probe for doctor (tests); None = real
     asynchronous = (
         args.command in {"doctor", "research", "analyst", "cycle"}
         or args.command == "sources"
