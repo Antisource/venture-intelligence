@@ -7,7 +7,8 @@
 1. **Chosen:** a `ModelProvider` port with four adapters written on httpx, with no
    vendor SDK required:
    - `deterministic`, which is always available;
-   - `ollama`, the default, keeping `qwen2.5-coder:3b`;
+   - `ollama`, the default, with the Apache-2.0 `granite3.3:2b` as its default model and
+     `qwen2.5-coder:3b` optional (D-021);
    - `openai_compatible`;
    - `anthropic`.
 

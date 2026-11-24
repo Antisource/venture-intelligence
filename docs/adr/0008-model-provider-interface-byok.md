@@ -2,7 +2,7 @@
 
 - **Status:** Proposed
 - **Date:** 2026-11-23
-- **Related:** ADR-0002, ADR-0004, ADR-0006, ADR-0007, D-020
+- **Related:** ADR-0002, ADR-0004, ADR-0006, ADR-0007, D-020, D-021
 
 ## Context
 
@@ -41,7 +41,10 @@
    - **`deterministic`:** always available. It wraps today's `LocalBoundaryProvider` and
      the regex extractor.
    - **`ollama`** (MIT server) is the local default: the native `/api/chat` with `format`
-     set to a JSON schema. The default model stays `qwen2.5-coder:3b`.
+     set to a JSON schema. The default model becomes `granite3.3:2b` (IBM Granite,
+     Apache-2.0; verify the Ollama tag), because the `qwen2.5-coder:3b` weights are under
+     the non-OSI Qwen Research License (D-021). Qwen stays optional: users may set
+     `OLLAMA_MODEL=qwen2.5-coder:3b` or build the Qwen-based custom Modelfile.
    - **`openai_compatible`:** Chat Completions with `response_format: json_schema` where
      the provider supports it; otherwise JSON mode plus validation. It covers OpenAI, Azure
      OpenAI, Mistral, Groq, OpenRouter, vLLM (Apache-2.0), the llama.cpp server (MIT),
@@ -123,19 +126,20 @@
 
 - **We maintain three remote adapters.** Recorded-response tests and the harness catch
   provider API drift.
-- **The local default is unchanged,** and the deterministic path keeps every feature
-  usable with no model.
+- **The local default model changes** to an Apache-2.0 model of similar size (D-021),
+  and the deterministic path keeps every feature usable with no model.
 - **Migration steps:** (1) wrap the existing providers in the port, with no behaviour
   change; (2) the single context builder; (3) generalise the analyst's unsupported-claim
   discard into a shared validator; (4) `model_runs`; (5) BYOK settings and encrypted
-  storage; (6) the OpenAI-compatible and Anthropic adapters; (7) the harness in CI.
+  storage; (6) the OpenAI-compatible and Anthropic adapters; (7) the harness in CI;
+  (8) switch the default model in one change to the Python default, `.env.example`, the
+  README and AGENTS.md, documenting the Modelfile as the optional Qwen custom model.
 - **Parity risks:** P-201, P-240, P-270 and P-330–P-337 must keep their meaning, and
   existing `.env` files must keep working.
-- **Open question for the owner:** check the licence of the default model's weights. The
-  3B Qwen2.5 variants may be under the Qwen Research License rather than Apache-2.0
-  (verify). If so, the "open-source only" rule may call for a different default, such as
-  an Apache-2.0 Qwen2.5-Coder size. Changing it means updating the Python default, the
-  Modelfile and the README together (AGENTS.md).
+- **Default model licence (resolved, D-021):** the Hugging Face card for
+  `Qwen/Qwen2.5-Coder-3B` lists the `qwen-research` licence, which is not
+  OSI-compatible, so the default switches to `granite3.3:2b` (Apache-2.0) and Qwen stays
+  optional. Existing `.env` files that set `OLLAMA_MODEL` keep their model.
 
 ## How parity is verified
 

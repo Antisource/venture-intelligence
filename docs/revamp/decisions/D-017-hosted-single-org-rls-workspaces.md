@@ -23,7 +23,7 @@
    recommends single-tenant hosting first. Personal workspaces deliver the per-user
    isolation the owner asked for.
    **Trade-off:** multi-organisation SaaS would need schema-per-tenant or an
-   organisation key on the corpus as well, which is a later decision. Team workspaces
+   organisation key on the corpus as well; the owner ruled it out (D-021). Team workspaces
    share data deliberately, so membership changes need care.
 4. **Parity:** every existing capability runs in the implicit local workspace, so the
    current suite passes with RLS on. A registry-generated matrix test proves that user A

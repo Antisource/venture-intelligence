@@ -14,13 +14,16 @@
    model. The old `storage/db/__init__.py` docstring anticipated "PostgreSQL + asyncpg".
 3. **Why:** an async rewrite would change 97 storage methods and every caller in the
    same step as the dialect switch, which doubles parity risk. Core shares table
-   metadata with Alembic and can run the same query code on SQLite while each domain is
-   ported, so parity is proven by one contract suite rather than query by query. The
+   metadata with Alembic, so drift is caught by `alembic check`. Parity is proven by one
+   storage contract suite that runs every public `Database` method against the frozen
+   legacy `sqlite3` implementation and the new Postgres one, so it is argued per method,
+   not query by query, and the new queries may use Postgres-only constructs. The
    threadpool removes blocking I/O from the event loop, the actual defect in FINDINGS
    §5 cause 9 and §7.
    **Trade-off:** concurrency is bounded by the threadpool and pool size (AnyIO's
    default is 40 tokens), and peak throughput is lower than asyncpg's. Revisit only if
    event-loop or threadpool saturation is measured.
 4. **Parity:** `Database` keeps its public method signatures. A storage contract suite
-   runs every method on both backends before each domain switches. `openapi.json` stays
+   runs every method on both the frozen legacy `sqlite3` implementation and the Postgres
+   implementation before each domain switches. `openapi.json` stays
    byte-identical.

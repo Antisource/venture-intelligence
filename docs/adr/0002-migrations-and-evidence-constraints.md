@@ -2,7 +2,7 @@
 
 - **Status:** Proposed
 - **Date:** 2026-11-23
-- **Related:** ADR-0001, ADR-0006, ADR-0008, D-012
+- **Related:** ADR-0001, ADR-0005, ADR-0006, ADR-0008, D-012, D-021
 
 ## Context
 
@@ -44,7 +44,9 @@
    `BEFORE TRUNCATE` trigger raise `vi_append_only` for every role, including the owner.
    - **Tier 1, the evidence record:** `events`, `observations`, `observation_bindings`,
      `batch_discovery_observations`, `candidate_rejections`, `model_runs`,
-     `people_query_audit` and `erasure_log`. Only erasure may change these rows.
+     `people_query_audit`, `erasure_log` and `maintenance_log`. Only erasure may change
+     these rows, except that the retention purge may delete expired
+     `people_query_audit` rows.
    - **Tier 2, append-only histories:** `crm_events`, the recommendation and alert
      lifecycle tables, and `features`. Rows are never updated. They may be deleted only
      through the reconcile path.
@@ -53,8 +55,9 @@
    ordinary tables that the pipeline rebuilds. Pipeline progress moves out of `events`
    into `event_processing(event_id, stage, completed_at)`. A view still exposes
    `processed_at`, `ranked_at` and `notified_at`, so `/api/events` (P-009) is unchanged.
-4. **Exactly two audited maintenance paths (D-012).** Both are `SECURITY DEFINER`
-   functions that set a transaction-local flag the triggers honour.
+4. **Exactly three audited maintenance paths (D-012).** Each is a `SECURITY DEFINER`
+   function that sets a transaction-local flag the triggers honour; no other function or
+   role can set it.
    - **Erasure:** `vi_erase_subject(subject_ref, request_id)`, in one transaction:
      - replaces personal payload fields in tier-1 and tier-2 rows with a tombstone;
      - deletes derived rows;
@@ -63,12 +66,30 @@
 
      The identity gate (P-227) checks `subject_suppressions` before accepting new
      observations, which implements opt-out. Row ids, the source host and timestamps
-     survive, so audit counts stay coherent.
+     survive as content-free tombstones, so audit counts stay coherent (owner decision,
+     D-021).
+
+     **Erasure ledger outside the database.** `erasure_log` lives in the dump, so a
+     restore would lose every erasure made after the backup. `vi admin erase-subject`
+     therefore also appends one content-free JSON line (subject key hash, erased row ids,
+     timestamp, actor) to an append-only JSONL ledger at `ERASURE_LEDGER_PATH`. The ledger
+     sits on a separate volume, is excluded from the database dump and is backed up
+     alongside it (ADR-0005). The line is appended and fsynced before the erasure
+     transaction commits; if the append fails, the erasure rolls back. A line whose
+     transaction later fails is harmless, because replay is idempotent. Restore replays
+     the ledger (ADR-0005).
    - **Reconcile** (P-103, P-243) may delete tier-2 rows only. It first copies each row
      into `reconcile_archive(run_id, table, row)`, so polluted CRM and lifecycle history is
      recoverable. Today it is destroyed (`storage/cleanup.py:436-462`). Reconcile never
      touches tier 1. Its in-place re-pointing of observations and evidence
      (`storage/cleanup.py:124-175`) becomes appended bindings plus rebuilt derived rows.
+   - **Retention purge:** `vi_purge_people_audit()` deletes `people_query_audit` rows
+     older than the retention period (12 months by default, set by
+     `PEOPLE_AUDIT_RETENTION_MONTHS`; ADR-0006, D-021) and appends one
+     `maintenance_log` row per run (cutoff, rows deleted, time, actor). It takes no
+     arguments: it reads the period from an owner-only settings row, so `vi_app` can run
+     it from a daily job (ADR-0003) but cannot shorten retention. It touches no other
+     table.
 5. **Provenance is `NOT NULL`.**
    - `events.source`, `source_url` (`CHECK` non-empty, http or https), `observed_at` and
      `ingested_at` are required.
@@ -143,11 +164,13 @@ steps:
   Quarantine makes them visible, and reconcile (P-103, P-243) remains the repair tool.
   Reconcile now runs through the archived maintenance path and can no longer rewrite
   tier-1 rows.
-- **Erasure and reconcile are documented, audited exceptions** to immutability.
+- **Erasure, reconcile and the retention purge are documented, audited exceptions** to
+  immutability.
 - **Migration steps:** (1) the baseline migration and roles; (2) `event_processing` and
   the compatibility view; (3) bindings, support and `origin_key`, with attribution moved
   out of storage; (4) append-only triggers; (5) JSON state files into tables; (6) the
-  importer with fixtures; (7) the erasure function (with ADR-0006).
+  importer with fixtures; (7) the erasure function and ledger, and the retention purge
+  (with ADR-0006).
 - **Parity risks:**
   - `db fresh` (P-102) now needs the owner role.
   - Imported legacy attribution is preserved as-is, not silently "fixed".
@@ -167,8 +190,10 @@ steps:
     `vi_app` and `vi_owner`;
   - support from an unbound binding fails;
   - a duplicate-origin support row fails;
-  - erasure and reconcile work only through their functions, and both leave an audit
-    row.
+  - erasure, reconcile and the retention purge work only through their functions, and
+    each leaves an audit row;
+  - the retention purge deletes only `people_query_audit` rows older than the period;
+  - an erasure whose ledger append fails is rolled back.
 - The reconcile tests behind P-103 and P-243
   (`test_polluted_reconciliation_is_dry_run_idempotent_and_preserves_raw_inputs`,
   `test_directory_company_reconciliation_is_dry_run_first_and_preserves_raw_events`) pass

@@ -19,8 +19,9 @@
    role without live privileges, isolates more strongly than a separate file opened by the
    same code.
    **Trade-off:** even a solo user now needs Postgres. The one-command compose stack
-   (ADR-0005) mitigates this; whether a no-Docker install is required is an open owner
-   question.
+   (ADR-0005) mitigates this. The owner chose Docker or Podman compose as the only
+   supported install, with documented manual Postgres steps for users without Docker
+   (resolved, D-021).
 4. **Parity:** `--database` (P-072, P-106–P-108) accepts a database URL. Given a SQLite
    path, it exits 2 with a structured error that names `vi db import-sqlite`. `db fresh`
    (P-102) drops and recreates the schema behind the same `--confirm` gates.

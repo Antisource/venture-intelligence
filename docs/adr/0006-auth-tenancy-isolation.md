@@ -2,7 +2,7 @@
 
 - **Status:** Proposed
 - **Date:** 2026-11-23
-- **Related:** ADR-0001, ADR-0002, ADR-0005, ADR-0007, D-016, D-017, D-018
+- **Related:** ADR-0001, ADR-0002, ADR-0005, ADR-0007, D-016, D-017, D-018, D-021
 
 ## Context
 
@@ -34,11 +34,19 @@
    - Wildcard CORS is removed. CORS stays off unless `CORS_ALLOWED_ORIGINS` lists explicit
      origins, and `*` is never combined with credentials.
    - A trusted-host allowlist (`localhost`, `127.0.0.1`, the configured domain) defeats
-     DNS rebinding.
-   - Every unsafe method requires a JSON (or multipart) content type, plus either
-     `Sec-Fetch-Site: same-origin|none` or an allowlisted `Origin`. Hosted mode also
-     requires a double-submit CSRF token: the `__Host-vi_csrf` cookie echoed in
+     DNS rebinding. It is a setting, and the shared test settings fixture adds
+     `TestClient`'s `testserver` host, so route tests themselves do not change.
+   - Every unsafe method requires a JSON (or multipart) content type.
+   - A request that carries an `Origin` or any `Sec-Fetch-*` header comes from a
+     browser. On an unsafe method it must be same-origin (`Sec-Fetch-Site:
+     same-origin|none`) or carry an allowlisted `Origin`. Hosted mode also requires a
+     double-submit CSRF token for browser sessions: the `__Host-vi_csrf` cookie echoed in
      `X-CSRF-Token`.
+   - A request with no `Origin` and no `Sec-Fetch-*` header is a non-browser client
+     (curl, scripts, the remote CLI, Starlette's `TestClient`). Browsers always attach
+     these headers to cross-site unsafe requests, so a page cannot pose as one. Local
+     mode allows it. Hosted mode requires a bearer personal access token on it
+     (`Authorization: Bearer vi_pat_…`) and never accepts a session cookie in its place.
    - WebSocket and SSE handshakes check `Origin`.
    - Local mode has no login on loopback (D-016). The local CLI calls services
      in-process, not over HTTP (ADR-0007).
@@ -96,9 +104,9 @@
 8. **People-level audit.** Every `people_level` capability appends one
    `people_query_audit` row: actor, workspace, capability, lens, subject entity ids (or a
    query digest), result count, request id and time. Users see their own entries; admins
-   see all. Retention defaults to 13 months and is
-   configurable (confirm with counsel). Erasure and opt-out use `vi admin erase-subject`,
-   which calls the ADR-0002 function. The GDPR and DPDP mapping covers technical controls
+   see all. Rows are kept for 12 months (`PEOPLE_AUDIT_RETENTION_MONTHS`, default 12;
+   owner decision, D-021), then removed only by the ADR-0002 retention purge. Erasure and
+   opt-out use `vi admin erase-subject`, which calls the ADR-0002 function. The GDPR and DPDP mapping covers technical controls
    only and is not legal advice; check DPDP Rules timelines.
 9. **Secrets.**
    - Every secret setting is a `SecretStr`, which fixes the SMTP password.
@@ -122,8 +130,8 @@
 - **fastapi-users (MIT):** ready-made flows, but in maintenance mode (verify) and
   JWT-first. Rejected; our needs are small.
 - **Schema-per-tenant or database-per-tenant:** stronger isolation, but N-fold
-  migrations and no shared corpus. It fits only multi-organisation SaaS, which is an
-  owner question.
+  migrations and no shared corpus. It fits only multi-organisation SaaS, which the owner
+  ruled out (resolved, D-021).
 - **Filtering in the application only, without RLS:** simpler, but one missing `WHERE`
   clause leaks data. Rejected; RLS is defence in depth.
 
@@ -137,8 +145,9 @@
   (2) users, sessions and tokens; (3) workspaces and RLS; (4) audit and rate limits;
   (5) secret encryption; (6) OIDC.
 - **Parity risks:**
-  - P-005 changes from all origins to same-origin. This is the intended fix, and it does
-    not affect non-browser clients.
+  - P-005 changes from all origins to same-origin. This is the intended fix. Non-browser
+    clients send no `Origin` or `Sec-Fetch-*` header, so local mode does not affect them;
+    hosted mode asks them for a bearer token, as it does for every route.
   - Form-encoded cross-site POSTs are refused. The frontend sends JSON (verify for every
     mutation).
   - Cross-origin WebSockets (P-035, P-036) are refused.
@@ -150,8 +159,10 @@
 - **Cross-site protection:** for every mutating route, enumerated from OpenAPI, a test
   sends a cross-site request and expects refusal. A rebinding `Host` is refused, and so is
   a cross-origin WebSocket.
-- **Same-origin flows keep working:** the vitest suite and the legacy route tests pass
-  unchanged.
+- **Same-origin and non-browser flows keep working:** the vitest suite and the legacy
+  route tests pass unchanged. Those tests use `TestClient` without `Origin` or
+  `Sec-Fetch-*` headers, which local mode treats as a non-browser client. A hosted-mode
+  test checks that such a request without a bearer token is refused.
 - **Workspace isolation:** a matrix generated from the registry checks that user A cannot
   read or change B's thesis, mandate, notes, pipeline or outbox through REST, the remote
   CLI or MCP.

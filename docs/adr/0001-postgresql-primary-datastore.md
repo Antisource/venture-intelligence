@@ -50,8 +50,8 @@
    events and `event_queue` → entities → observations and evidence → features, signals
    and hypotheses → rankings → recommendations, alerts and lifecycles → CRM → graph →
    investigations → evaluation and batch discovery → replay. During the port, a storage
-   contract suite runs every public `Database` method against both the frozen SQLite
-   implementation and the Postgres one. A domain switches only when both give identical
+   contract suite runs every public `Database` method against both the frozen legacy
+   `sqlite3` implementation and the new Postgres one; they share no query code. A domain switches only when both give identical
    results.
 7. **Dialect differences are handled explicitly, each with a contract test:**
    - **NULL ordering:** ascending sorts put NULLs first in SQLite and last in Postgres.
@@ -80,9 +80,10 @@
 ## Alternatives considered
 
 - **Raw psycopg 3 with hand-written SQL:** the smallest and fastest option, but it gives
-  no shared metadata for Alembic drift checks and no way to run the same query code on
-  SQLite during the port, so parity would be argued query by query. Rejected for the
-  port; Core's `text()` still allows raw SQL on hot paths.
+  no shared table metadata, so Alembic could not check for drift and the schema would be
+  declared twice. Parity would be shown the same way either way, by the contract suite
+  against the frozen legacy implementation (§6). Rejected for the port; Core's `text()`
+  still allows raw SQL on hot paths.
 - **asyncpg (Apache-2.0) with a full async rewrite:** the highest throughput, and it
   matches the V2 note in `storage/db/__init__.py`. But it rewrites 97 methods and every
   caller in the same change as the dialect switch, which doubles parity risk. asyncpg has

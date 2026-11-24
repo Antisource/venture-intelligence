@@ -2,7 +2,7 @@
 
 - **Status:** Proposed
 - **Date:** 2026-11-23
-- **Related:** ADR-0001, ADR-0003, ADR-0004, ADR-0006, D-015
+- **Related:** ADR-0001, ADR-0002, ADR-0003, ADR-0004, ADR-0006, D-015, D-021
 
 ## Context
 
@@ -34,6 +34,8 @@
    - Images may be published to GHCR for convenience, but a local build must always work.
 2. **`compose.yaml` and its profiles.** Core services:
    - `db`: `postgres:18` with a named volume and a healthcheck; not published to the host;
+     the erasure ledger (ADR-0002) is on a separate named volume, `erasure-ledger`,
+     mounted only into `api`, `worker` and the backup service;
    - `migrate`: one-shot `vi db upgrade`;
    - `api`: serves the API and the UI on `127.0.0.1:8000`;
    - `worker`: runs `vi worker` (ADR-0003).
@@ -84,11 +86,17 @@
      terms).
 7. **Backups and restore.**
    - `vi admin backup` runs `pg_dump -Fc` through a one-shot service into
-     `./backups/vi-<timestamp>.dump` and keeps the last N files.
+     `./backups/vi-<timestamp>.dump`, copies the erasure ledger beside it as
+     `vi-<timestamp>.erasure.jsonl`, and keeps the last N pairs. The ledger is never
+     inside the dump.
    - `vi admin restore FILE` restores into a fresh database (`pg_restore --clean
-     --if-exists --no-owner`), then runs `vi db upgrade` and checks readiness.
-   - Restore replays `erasure_log`, so subjects erased after the backup stay erased
-     (ADR-0002).
+     --if-exists --no-owner`), runs `vi db upgrade`, then replays the erasure ledger:
+     the live ledger, or the newest backed-up copy if the live one is lost. Replay
+     re-erases every recorded row id through the erasure function and re-adds each subject
+     key hash to `subject_suppressions`, so subjects
+     erased after the backup stay erased (ADR-0002). If any record fails to replay,
+     restore exits non-zero and readiness keeps failing; it never finishes with erased
+     data restored.
    - Hosted guidance: nightly encrypted dumps (restic, BSD-2, or age, BSD-3) with an
      off-site copy; pgBackRest (MIT) for point-in-time recovery if needed.
 8. **Sizing.** These are starting points; the S6 load test verifies them.
@@ -96,7 +104,7 @@
 | Topology | CPU | RAM | Disk | Notes |
 |---|---|---|---|---|
 | Local, deterministic model | 2 vCPU | 4 GB | 10 GB | the operator's install holds about 7k rankings |
-| Local + Ollama `qwen2.5-coder:3b` | 4 vCPU | 8–12 GB | 15 GB | model about 2 GB; GPU optional |
+| Local + Ollama default model (`granite3.3:2b`, D-021) | 4 vCPU | 8–12 GB | 15 GB | model about 2 GB; GPU optional |
 | Hosted, up to 25 users and 100 mandates | 4 vCPU | 8 GB | 50 GB SSD | 2 API workers; 1 worker at concurrency 4; `shared_buffers` 2 GB |
 
 ## Alternatives considered
@@ -107,8 +115,10 @@
   suits dynamic fleets. nginx is the most familiar, but needs certbot for automatic TLS.
   Caddy gives automatic HTTPS and a local CA from a ten-line Caddyfile.
 - **Native install as the primary path** (`uv tool install` plus a system Postgres): lighter
-  and needs no container runtime, but installing Postgres on Windows is a manual step. It
-  is documented as the advanced or development path.
+  and needs no container runtime, but installing Postgres on Windows is a manual step.
+  The owner chose Docker or Podman compose as the only supported install (resolved,
+  D-021). Users without Docker get documented manual Postgres steps, not a supported
+  native path.
 - **Dev containers or Nix:** reproducible, but niche for this audience. Not adopted.
 
 ## Consequences
@@ -134,5 +144,8 @@
   P-004, P-007, P-063 and P-097.
 - `vi demo load` is idempotent: run twice, it gives the same row counts and digests.
 - Backup, restore and digest equality are checked in CI.
+- A CI test erases a subject after a backup, restores that backup, and checks the
+  subject stays erased and suppressed; with a corrupt ledger line, restore exits
+  non-zero.
 - `docker compose config` validates for every profile.
 - The owner runs the one-command path on Windows; the result is recorded in STATUS.

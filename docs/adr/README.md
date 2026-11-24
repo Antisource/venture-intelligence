@@ -24,13 +24,13 @@ ADR that supersedes it; do not rewrite the accepted one.
 | ADR | Title | Status | Decision log |
 |---|---|---|---|
 | [0001](0001-postgresql-primary-datastore.md) | PostgreSQL as the primary datastore | Proposed | D-010, D-011 |
-| [0002](0002-migrations-and-evidence-constraints.md) | Schema migrations, evidence invariants as constraints, and the SQLite import | Proposed | D-012 |
+| [0002](0002-migrations-and-evidence-constraints.md) | Schema migrations, evidence invariants as constraints, and the SQLite import | Proposed | D-012, D-021 |
 | [0003](0003-job-queue-and-scheduler.md) | Job queue, scheduler and delivery outbox | Proposed | D-013 |
 | [0004](0004-observability.md) | Observability | Proposed | D-014 |
-| [0005](0005-deployment-and-topologies.md) | Deployment and topologies | Proposed | D-015 |
-| [0006](0006-auth-tenancy-isolation.md) | Authentication, tenancy and isolation | Proposed | D-016, D-017, D-018 |
+| [0005](0005-deployment-and-topologies.md) | Deployment and topologies | Proposed | D-015, D-021 |
+| [0006](0006-auth-tenancy-isolation.md) | Authentication, tenancy and isolation | Proposed | D-016, D-017, D-018, D-021 |
 | [0007](0007-module-boundaries-service-layer.md) | Module boundaries and the single service layer | Proposed | D-019 |
-| [0008](0008-model-provider-interface-byok.md) | Model provider interface and bring-your-own-key | Proposed | D-020 |
+| [0008](0008-model-provider-interface-byok.md) | Model provider interface and bring-your-own-key | Proposed | D-020, D-021 |
 
 ## Conventions
 

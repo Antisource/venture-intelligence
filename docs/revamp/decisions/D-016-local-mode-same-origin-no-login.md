@@ -9,7 +9,10 @@
    - no wildcard CORS;
    - a trusted-host allowlist against DNS rebinding;
    - JSON or multipart bodies only on unsafe methods;
-   - `Sec-Fetch-Site` or `Origin` checks on unsafe methods;
+   - on unsafe methods, a request that carries `Origin` or any `Sec-Fetch-*` header
+     (a browser) must be same-origin or from an allowlisted `Origin`;
+   - a request with neither header is a non-browser client: allowed in local mode, and
+     in hosted mode only with a bearer personal access token;
    - `Origin` checks on WebSocket and SSE handshakes.
 
    In local mode the CLI calls the service layer in-process instead of over HTTP. See
@@ -24,6 +27,8 @@
    matches the trust model of other local developer tools, and an optional local token can
    be added if the owner wants one.
 4. **Parity:** P-005 changes from all-origin CORS to same-origin; this is the intended
-   fix, and non-browser clients are unaffected. Every same-origin UI flow and legacy route
-   keeps working (vitest suite and route tests). Cross-site requests to each mutating
+   fix. Non-browser clients (curl, scripts, `TestClient`) send neither header, so local
+   mode leaves them unaffected. Every same-origin UI flow and legacy route keeps working:
+   the vitest suite and the route tests, which POST through `TestClient` without an
+   `Origin` header, pass unchanged. Cross-site requests to each mutating
    route are refused, with a test per route generated from OpenAPI.
