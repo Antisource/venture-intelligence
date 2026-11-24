@@ -97,9 +97,10 @@ def test_seed_writes_expected_counts_and_views_read_them(tmp_path: Path) -> None
 def test_seeded_databases_are_identical_for_the_same_seed(tmp_path: Path) -> None:
     seeder = _seeder()
     first, second = tmp_path / "a.db", tmp_path / "b.db"
-    assert seeder.seed_database(first, seed=9, companies=2)["digest"] == seeder.seed_database(
-        second, seed=9, companies=2
-    )["digest"]
+    assert (
+        seeder.seed_database(first, seed=9, companies=2)["digest"]
+        == seeder.seed_database(second, seed=9, companies=2)["digest"]
+    )
     for table, columns in (
         ("companies", "company_id, canonical_name, website, batch, founder_ids"),
         ("persons", "person_id, canonical_name, current_company_id"),

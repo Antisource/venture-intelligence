@@ -172,11 +172,7 @@ _HTTP_METHODS = {"GET", "POST", "PUT", "PATCH", "DELETE"}
 
 def _subparsers(parser: argparse.ArgumentParser) -> argparse._SubParsersAction | None:
     return next(
-        (
-            action
-            for action in parser._actions
-            if isinstance(action, argparse._SubParsersAction)
-        ),
+        (action for action in parser._actions if isinstance(action, argparse._SubParsersAction)),
         None,
     )
 
@@ -205,9 +201,7 @@ def cli_command_problem(parser: argparse.ArgumentParser, command: str) -> str | 
     if _subparsers(current) is not None and _subparsers(current).required:
         return f"command {command!r} is incomplete; it needs a sub-command"
     positionals = [action for action in current._actions if not action.option_strings]
-    options = {
-        option: action for action in current._actions for option in action.option_strings
-    }
+    options = {option: action for action in current._actions for option in action.option_strings}
     placeholders = 0
     expects_value = False
     for token in tokens[index:]:
