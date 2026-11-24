@@ -290,6 +290,33 @@
         "title": "AnalystRequest",
         "type": "object"
       },
+      "ApiRoute": {
+        "additionalProperties": false,
+        "properties": {
+          "method": {
+            "enum": [
+              "GET",
+              "POST",
+              "PUT",
+              "PATCH",
+              "DELETE"
+            ],
+            "title": "Method",
+            "type": "string"
+          },
+          "route": {
+            "pattern": "^/",
+            "title": "Route",
+            "type": "string"
+          }
+        },
+        "required": [
+          "method",
+          "route"
+        ],
+        "title": "ApiRoute",
+        "type": "object"
+      },
       "BatchCandidateDetailResponse": {
         "properties": {
           "candidate": {
@@ -1747,6 +1774,128 @@
         ],
         "title": "CandidateState",
         "type": "string"
+      },
+      "CapabilityStatus": {
+        "enum": [
+          "available",
+          "planned"
+        ],
+        "title": "CapabilityStatus",
+        "type": "string"
+      },
+      "CapabilityTeaser": {
+        "description": "What a higher lens adds, shown without its command or route.",
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "slice": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Slice"
+          },
+          "status": {
+            "$ref": "#/components/schemas/CapabilityStatus"
+          },
+          "teaser": {
+            "title": "Teaser",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "unlock_lens": {
+            "$ref": "#/components/schemas/Lens"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "teaser",
+          "unlock_lens",
+          "status"
+        ],
+        "title": "CapabilityTeaser",
+        "type": "object"
+      },
+      "CapabilityView": {
+        "description": "A capability the requested lens can use (or will, when planned).",
+        "properties": {
+          "api": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ApiRoute"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "blurb": {
+            "title": "Blurb",
+            "type": "string"
+          },
+          "cli": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cli"
+          },
+          "default_lens": {
+            "$ref": "#/components/schemas/Lens"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "people_data": {
+            "title": "People Data",
+            "type": "boolean"
+          },
+          "slice": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Slice"
+          },
+          "status": {
+            "$ref": "#/components/schemas/CapabilityStatus"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "blurb",
+          "default_lens",
+          "cli",
+          "api",
+          "people_data",
+          "status"
+        ],
+        "title": "CapabilityView",
+        "type": "object"
       },
       "ClaimStatus": {
         "enum": [
@@ -4859,6 +5008,50 @@
           "entity_id"
         ],
         "title": "KnowledgePage",
+        "type": "object"
+      },
+      "Lens": {
+        "description": "Product lenses, ordered from least to most detail. Views, not security.",
+        "enum": [
+          "L1",
+          "L2",
+          "L3",
+          "L4"
+        ],
+        "title": "Lens",
+        "type": "string"
+      },
+      "LensCapabilities": {
+        "properties": {
+          "capabilities": {
+            "items": {
+              "$ref": "#/components/schemas/CapabilityView"
+            },
+            "title": "Capabilities",
+            "type": "array"
+          },
+          "lens": {
+            "$ref": "#/components/schemas/Lens"
+          },
+          "lens_title": {
+            "title": "Lens Title",
+            "type": "string"
+          },
+          "teasers": {
+            "items": {
+              "$ref": "#/components/schemas/CapabilityTeaser"
+            },
+            "title": "Teasers",
+            "type": "array"
+          }
+        },
+        "required": [
+          "lens",
+          "lens_title",
+          "capabilities",
+          "teasers"
+        ],
+        "title": "LensCapabilities",
         "type": "object"
       },
       "LineageEdge": {
@@ -10635,6 +10828,51 @@
         "summary": "Batch Candidate",
         "tags": [
           "batch-discovery"
+        ]
+      }
+    },
+    "/api/v1/capabilities": {
+      "get": {
+        "description": "Return the capabilities visible to a lens plus teasers for higher lenses.",
+        "operationId": "list_capabilities_api_v1_capabilities_get",
+        "parameters": [
+          {
+            "description": "Lens to view: L1 Explorer, L2 Analyst, L3 Partner, L4 Technical VC.",
+            "in": "query",
+            "name": "lens",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/Lens",
+              "default": "L1",
+              "description": "Lens to view: L1 Explorer, L2 Analyst, L3 Partner, L4 Technical VC."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LensCapabilities"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Capabilities",
+        "tags": [
+          "v1"
         ]
       }
     },
