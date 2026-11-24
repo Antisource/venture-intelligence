@@ -104,3 +104,14 @@ class _RefusedSMTP:
 def _refuse_real_smtp(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(smtplib, "SMTP", _RefusedSMTP)
     monkeypatch.setattr(smtplib, "SMTP_SSL", _RefusedSMTP)
+
+
+# Ephemeral PostgreSQL fixtures for tests marked ``postgres``. They read only
+# VI_TEST_DATABASE_URL from the process environment (never .env) and create a
+# throwaway database per test, so the isolation above is unchanged.
+from tests.postgres_fixtures import (  # noqa: E402, F401
+    _migrated_template,
+    migrated_postgres_url,
+    postgres_server_url,
+    postgres_url,
+)
