@@ -35,7 +35,8 @@
 2. **`compose.yaml` and its profiles.** Core services:
    - `db`: `postgres:18` with a named volume and a healthcheck; not published to the host;
      the erasure ledger (ADR-0002) is on a separate named volume, `erasure-ledger`,
-     mounted only into `api`, `worker` and the backup service;
+     mounted only into the one-shot services that run owner-role `vi admin` tasks
+     (erase-subject, erasure-retry, backup and restore), never into `api` or `worker`;
    - `migrate`: one-shot `vi db upgrade`;
    - `api`: serves the API and the UI on `127.0.0.1:8000`;
    - `worker`: runs `vi worker` (ADR-0003).
@@ -92,8 +93,9 @@
    - `vi admin restore FILE` stops the `api` and `worker` services, restores into a
      fresh database (`pg_restore --clean --if-exists --no-owner`), runs `vi db upgrade`,
      then replays the erasure ledger: the live ledger, or the newest backed-up copy if
-     the live one is lost. Replay calls `vi_replay_erasure` for every intent in the
-     ledger, marked or not, re-erasing its row ids and re-adding its subject key hash to
+     the live one is lost. Replay runs under the owner role, takes a per-request-id
+     advisory lock, and calls `vi_replay_erasure` for every intent in the ledger, marked
+     or not, re-erasing its row ids and re-adding its subject key hash to
      `subject_suppressions`, the same hash the identity gate (P-227) checks. Subjects
      erased after the backup therefore stay erased (ADR-0002). The `api` and `worker`
      restart only after replay finishes, and readiness fails until then. If any record

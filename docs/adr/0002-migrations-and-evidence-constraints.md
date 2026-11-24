@@ -37,7 +37,8 @@
 2. **Roles:**
    - `vi_owner` owns objects and runs migrations.
    - `vi_app` is the runtime role: not an owner, and `NOBYPASSRLS`.
-   - `vi_erasure` is used only by the erasure and erasure-replay functions.
+   - `vi_erasure` is a non-login role that owns, and is used only by, the
+     `SECURITY DEFINER` erasure and erasure-replay functions.
    - `vi_readonly` runs backups.
 3. **Two tiers of write protection.** For both tiers, `vi_app` loses `UPDATE`, `DELETE`
    and `TRUNCATE`, and row-level `BEFORE UPDATE OR DELETE` triggers plus a
@@ -75,8 +76,9 @@
      **Replay mode:** `vi_replay_erasure(subject_key_hash, row_ids, request_id)` applies
      the same tombstoning to the listed row ids, deletes their derived rows, writes
      `erasure_log` and adds the hash to `subject_suppressions`. It needs no
-     `subject_ref`, is idempotent, and only the owner role (restore, ADR-0005) and the
-     `vi_erasure` role (the erasure service's retry job) may execute it; `vi_app` cannot.
+     `subject_ref`, is idempotent, and only the owner role may execute it, from the
+     `vi admin restore` and `vi admin erasure-retry` tasks. No api, worker or `vi_app`
+     process can invoke replay.
 
      **Erasure ledger outside the database.** `erasure_log` lives in the dump, so a
      restore would lose every erasure made after the backup. The erasure service in the
@@ -91,13 +93,18 @@
        that request id. The marker is for reporting only; nothing reads it to decide
        whether to erase.
 
-     There are no abort lines and no resolution step: an intent is never cancelled. A
-     periodic worker job (ADR-0003), connecting as `vi_erasure`, calls `vi_replay_erasure` for every intent whose
-     request id has no `erasure_log` row, and restore replays every intent in the
-     ledger, marked or not (ADR-0005). Row-id erasure is idempotent, so re-applying an
-     erasure whose original transaction rolled back is the intended outcome: the subject
-     asked to be erased, so the erasure is retried until it succeeds. Erased data
-     therefore cannot come back through a restore, whatever crashed and whenever.
+     There are no abort lines and no resolution step: an intent is never cancelled.
+     Ledger replay runs only from two owner-role admin tasks: `vi admin restore`
+     (ADR-0005) and `vi admin erasure-retry`. Both take the same transaction-level advisory lock
+     per request id that the original erasure transaction holds, skip an intent whose request id already has an `erasure_log` row,
+     and treat a duplicate request id as already done, so replay cannot race an
+     in-flight original erasure. Restore replays every intent in the ledger, marked or
+     not. If an original erasure fails, the service exits non-zero and raises an admin
+     alert, so the owner reruns `vi admin erasure-retry`. Row-id erasure is idempotent,
+     so re-applying an erasure whose original transaction rolled back is the intended
+     outcome: the subject asked to be erased, so the erasure is retried until it
+     succeeds. Erased data therefore cannot come back through a restore, whatever
+     crashed and whenever.
    - **Reconcile** (P-103, P-243) may delete tier-2 rows only. It first copies each row
      into `reconcile_archive(run_id, table, row)`, so polluted CRM and lifecycle history is
      recoverable. Today it is destroyed (`storage/cleanup.py:436-462`). Reconcile never
@@ -221,3 +228,10 @@ steps:
   `test_directory_company_reconciliation_is_dry_run_first_and_preserves_raw_events`) pass
   on Postgres.
 - The append-only lifecycle tests for P-237, P-245 and P-248 pass on Postgres.
+
+## Open implementation items
+
+- The erasure protocol needs an adversarial test suite before S6. It must cover a crash
+  before the commit marker, a restore from a backup older than the erasure, a
+  compromised api or worker process attempting replay, and replay running concurrently
+  with the original erasure.

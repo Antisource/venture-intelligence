@@ -120,7 +120,7 @@
      Key ids are versioned, so the key can rotate.
    - The API returns only `configured` and the last four characters.
 10. **Admin tasks are CLI-only by default:** `vi admin` users, tokens, erase-subject,
-    backup, restore and rotate-secret-key. They run with the owner database role and are
+    erasure-retry, backup, restore and rotate-secret-key. They run with the owner database role and are
     not exposed over HTTP.
 
 ## Alternatives considered

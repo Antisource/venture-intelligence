@@ -19,9 +19,12 @@
      writes a content-free record to an append-only JSONL ledger on a separate volume:
      an intent line (request id, subject key hash, erased row ids, timestamp, actor)
      fsynced before commit, then a commit marker after commit that is used only for
-     reporting. An intent is never cancelled: there are no abort lines. A periodic job
-     re-applies, through the row-id replay mode `vi_replay_erasure`, any intent whose
-     `erasure_log` row is missing. The ledger is excluded from the dump and backed up
+     reporting. An intent is never cancelled: there are no abort lines. Replay, through
+     the row-id replay mode `vi_replay_erasure`, runs only from the owner-role admin
+     tasks `vi admin restore` and `vi admin erasure-retry`; no api or worker process can
+     invoke it. Both take a per-request-id advisory lock and skip intents that already
+     have an `erasure_log` row. A failed original erasure exits non-zero and raises an
+     admin alert so the owner reruns `vi admin erasure-retry`. The ledger is excluded from the dump and backed up
      alongside it. Restore stops the api and worker, runs `pg_restore`, replays every
      intent in the ledger, marked or not, and refuses to finish or restart the services
      if replay fails. Erasures made after a backup therefore survive a restore on every
