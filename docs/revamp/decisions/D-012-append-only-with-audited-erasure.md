@@ -22,8 +22,9 @@
      reporting. An intent is never cancelled: there are no abort lines. Replay, through
      the row-id replay mode `vi_replay_erasure`, runs only from the owner-role admin
      tasks `vi admin restore` and `vi admin erasure-retry`; no api or worker process can
-     invoke it. Both take a per-request-id advisory lock and skip intents that already
-     have an `erasure_log` row. A failed original erasure exits non-zero and raises an
+     invoke it. Both take the per-request-id advisory lock that the original erasure takes
+     before its intent append, and skip intents that already have an `erasure_log` row;
+     the original likewise treats a duplicate request id as already done, with no alert. A failed original erasure exits non-zero and raises an
      admin alert so the owner reruns `vi admin erasure-retry`. The ledger is excluded from the dump and backed up
      alongside it. Restore stops the api and worker, runs `pg_restore`, replays every
      intent in the ledger, marked or not, and refuses to finish or restart the services

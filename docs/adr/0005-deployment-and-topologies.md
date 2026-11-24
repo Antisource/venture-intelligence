@@ -93,8 +93,9 @@
    - `vi admin restore FILE` stops the `api` and `worker` services, restores into a
      fresh database (`pg_restore --clean --if-exists --no-owner`), runs `vi db upgrade`,
      then replays the erasure ledger: the live ledger, or the newest backed-up copy if
-     the live one is lost. Replay runs under the owner role, takes a per-request-id
-     advisory lock, and calls `vi_replay_erasure` for every intent in the ledger, marked
+     the live one is lost. Replay runs under the owner role, takes the per-request-id
+     advisory lock that the original erasure takes before its intent append, skips an
+     intent that already has an `erasure_log` row, and calls `vi_replay_erasure` for every intent in the ledger, marked
      or not, re-erasing its row ids and re-adding its subject key hash to
      `subject_suppressions`, the same hash the identity gate (P-227) checks. Subjects
      erased after the backup therefore stay erased (ADR-0002). The `api` and `worker`

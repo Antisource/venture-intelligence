@@ -86,8 +86,9 @@
      through, therefore also writes a two-phase, content-free record to an append-only
      JSONL ledger at `ERASURE_LEDGER_PATH`. The ledger sits on a separate volume, is
      excluded from the database dump and is backed up alongside it (ADR-0005).
-     - **Intent:** before the transaction commits, the service appends and fsyncs an
-       intent line (request id, subject key hash, erased row ids, timestamp, actor). If
+     - **Intent:** the erasure transaction first takes a transaction-level advisory lock
+       on the request id. Only then, before the transaction commits, does the service
+       append and fsync an intent line (request id, subject key hash, erased row ids, timestamp, actor). If
        the append fails, the erasure rolls back.
      - **Commit marker:** after the transaction commits, it appends a commit line for
        that request id. The marker is for reporting only; nothing reads it to decide
@@ -95,10 +96,12 @@
 
      There are no abort lines and no resolution step: an intent is never cancelled.
      Ledger replay runs only from two owner-role admin tasks: `vi admin restore`
-     (ADR-0005) and `vi admin erasure-retry`. Both take the same transaction-level advisory lock
-     per request id that the original erasure transaction holds, skip an intent whose request id already has an `erasure_log` row,
-     and treat a duplicate request id as already done, so replay cannot race an
-     in-flight original erasure. Restore replays every intent in the ledger, marked or
+     (ADR-0005) and `vi admin erasure-retry`. Both take the same per-request-id advisory lock
+     that the original erasure transaction takes before its intent append, skip an
+     intent whose request id already has an `erasure_log` row, and treat a duplicate
+     request id as already done. The original erasure also treats a duplicate request id
+     as already done: it reports success and raises no alert. So replay and an in-flight
+     original serialise on the lock, and whichever runs second is a no-op. Restore replays every intent in the ledger, marked or
      not. If an original erasure fails, the service exits non-zero and raises an admin
      alert, so the owner reruns `vi admin erasure-retry`. Row-id erasure is idempotent,
      so re-applying an erasure whose original transaction rolled back is the intended
@@ -234,4 +237,5 @@ steps:
 - The erasure protocol needs an adversarial test suite before S6. It must cover a crash
   before the commit marker, a restore from a backup older than the erasure, a
   compromised api or worker process attempting replay, and replay running concurrently
-  with the original erasure.
+  with the original erasure. In the concurrent case the expected outcome is exactly one
+  `erasure_log` row for the request id, both runs reporting success, and no admin alert.
