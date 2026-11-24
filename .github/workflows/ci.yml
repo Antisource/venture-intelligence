@@ -85,7 +85,48 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
-      - run: uv run pytest -q
+      # Postgres-marked tests run in the postgres job against a service container.
+      - run: uv run pytest -q -m "not postgres"
+
+  postgres:
+    name: postgres platform tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: vi
+          POSTGRES_PASSWORD: vi
+          POSTGRES_DB: vi
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U vi -d vi"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      VI_TEST_DATABASE_URL: postgresql://vi:vi@127.0.0.1:5432/vi
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --all-groups
+      # Probe tests use the API app, which serves the built frontend.
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - name: Migrations apply to an empty database
+        env:
+          DATABASE_URL: ${{ env.VI_TEST_DATABASE_URL }}
+        run: |
+          uv run python -m venture_intelligence.storage.pg upgrade
+          uv run python -m venture_intelligence.storage.pg current
+          uv run alembic check
+      - run: uv run pytest -q -m postgres
 
   frontend:
     name: frontend lint, types, tests, build
