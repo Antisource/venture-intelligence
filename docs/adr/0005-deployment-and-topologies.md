@@ -92,8 +92,9 @@
    - `vi admin restore FILE` restores into a fresh database (`pg_restore --clean
      --if-exists --no-owner`), runs `vi db upgrade`, then replays the erasure ledger:
      the live ledger, or the newest backed-up copy if the live one is lost. Replay
-     resolves any unmarked intents, then calls `vi_replay_erasure` for every intent that
-     has a commit line, re-erasing its row ids and re-adding its subject key hash to
+     never resolves intents or writes markers against the restored database. It calls
+     `vi_replay_erasure` for every intent without an abort line (a commit line overrides
+     an abort line), marked or unmarked, re-erasing its row ids and re-adding its subject key hash to
      `subject_suppressions`, the same hash the identity gate (P-227) checks. Subjects
      erased after the backup therefore stay erased (ADR-0002). If any record fails to replay,
      restore exits non-zero and readiness keeps failing; it never finishes with erased

@@ -18,11 +18,15 @@
      `erasure_log` is inside the dump, the erasure service (not the CLI command) also
      writes a two-phase, content-free record to an append-only JSONL ledger on a separate
      volume: an intent line (request id, subject key hash, erased row ids, timestamp,
-     actor) fsynced before commit, then a commit marker after commit. The ledger is
+     actor) fsynced before commit, then a commit marker after commit. Only resolution
+     against the live database may write an abort marker, and only for intents older than
+     the erasure transaction timeout; a commit marker always overrides it. The ledger is
      excluded from the dump and backed up alongside it. After `pg_restore`, restore
-     replays only committed intents through the row-id replay mode `vi_replay_erasure`
-     and refuses to finish if replay fails, so erasures made after a backup survive a
-     restore.
+     replays every intent without an abort marker, committed or unmarked, through the
+     row-id replay mode `vi_replay_erasure`, never resolves intents against the restored
+     database, and refuses to finish if replay fails. Erasures made after a backup
+     therefore survive a restore, even if the process crashed before writing the commit
+     marker.
    - **Reconcile** (P-103, P-243) is kept, not retired. It may delete tier-2 rows of
      polluted entities, after archiving each one to `reconcile_archive`. It never touches
      tier 1: its in-place re-pointing of observations becomes appended bindings, and

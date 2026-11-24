@@ -86,15 +86,23 @@
      excluded from the database dump and is backed up alongside it (ADR-0005).
      - **Intent:** before the transaction commits, the service appends and fsyncs an
        intent line (request id, subject key hash, erased row ids, timestamp, actor). If
-       the append fails, the erasure rolls back.
+       the append fails, the erasure rolls back. The erasure transaction runs with
+       `SET LOCAL transaction_timeout = '5min'`, so it cannot commit later than five
+       minutes after its intent.
      - **Commit marker:** after the transaction commits, it appends and fsyncs a commit
        line for that request id.
-     - **Resolution:** at service start and before every backup, each intent without a
-       marker is resolved against `erasure_log` by request id: a commit line if the row
-       exists, an abort line if not.
+     - **Abort marker:** only a resolution step against the live database the erasure ran
+       in may write one. At service start and before every backup, each unmarked intent
+       older than 15 minutes is checked against `erasure_log` by request id: a commit
+       line if the row exists, an abort line if not. Younger intents are left unmarked,
+       because their transaction may still be running. A commit line always overrides an
+       abort line.
 
-     Restore replays only intents that have a commit line (ADR-0005), so an erasure that
-     never committed is never applied.
+     Restore never resolves intents and never writes markers. It replays every intent
+     that has no abort line, including unmarked ones (ADR-0005). Replaying an erasure
+     that may have rolled back is idempotent and errs toward erasure, so a crash before
+     the commit marker followed by a restore from an older backup cannot bring erased
+     data back.
    - **Reconcile** (P-103, P-243) may delete tier-2 rows only. It first copies each row
      into `reconcile_archive(run_id, table, row)`, so polluted CRM and lifecycle history is
      recoverable. Today it is destroyed (`storage/cleanup.py:436-462`). Reconcile never
