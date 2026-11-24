@@ -30,18 +30,28 @@ PR #1 merge commit, "Merge pull request #1 ...", is not conventional).
 | 5 | `refactor/s0-split-api-routers` | `revamp-main` | #6 | pushed, CI green; depends on #5; draft until the S0 critic loop passes |
 | 6 | `test/s0-isolate-test-environment` | `revamp-main` | #7 | depends on #6; test-suite isolation from `.env`, `data/` and SMTP |
 | 7 | `docs/s0-architecture-adrs` | `revamp-main` | this link's PR | depends on #7; ADR-0001 to ADR-0008 and D-010 to D-021, all Proposed; no code changes |
+| 8 | `feat/s0-capability-registry` | `revamp-main` | this link's PR | depends on #8; capability registry and lens view, `vi capabilities`, `vi doctor` model report, `vi demo seed` |
 
 ## Next actions
 
 1. Owner: merge #5, then #6, then #7, then the ADR PR, each with "Create a
    merge commit" titled as the PR. Review the Proposed ADRs (`docs/adr/`).
-2. Agent: finish the rest of S0 (Postgres migration path,
-   capability registry and lens skeleton, `vi doctor`, demo database, test and
-   critic harnesses), then run the S0 critic loop before marking S0 PRs ready.
+2. Agent: finish the rest of S0 (Postgres migration path, test and critic
+   harnesses), then run the S0 critic loop before marking S0 PRs ready. Done:
+   capability registry and lens skeleton, `vi doctor`, demo database (link 8).
 3. After each owner merge: merge `origin/revamp-main` forward through every
    unmerged link.
 
 Local-only work: none. Every finished link is pushed.
+
+### Deferred from the S0 registry
+
+Recorded in the D-019 addendum (`docs/revamp/decisions/D-019-declared-registry-argparse-cli.md`):
+
+- Registry fields `mcp_tool`, `egress`, `requires_role` and `rate_class`.
+- TOON output and generating the `vi` command tree from the registry (S5).
+- The model report in `/readyz` (with the Postgres platform readiness work).
+- `vi demo seed` working outside a source checkout.
 
 ## Gate rehearsal (2026-11-20)
 
