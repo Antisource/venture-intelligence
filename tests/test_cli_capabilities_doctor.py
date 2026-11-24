@@ -7,7 +7,7 @@ import tomllib
 from pathlib import Path
 
 import pytest
-from venture_intelligence.capabilities import capabilities_for
+import yaml
 from venture_intelligence.cli import main
 from venture_intelligence.config import settings
 
@@ -28,11 +28,22 @@ def test_vi_is_an_alias_of_the_legacy_entry_point() -> None:
         ["--json", "capabilities", "--lens", "L1"],
     ],
 )
-def test_capabilities_json_matches_the_lens_view(argv, capsys) -> None:
+def test_capabilities_json_follows_the_registry_rules_for_l1(argv, capsys) -> None:
+    entries = yaml.safe_load((ROOT / "config" / "capabilities.yaml").read_text(encoding="utf-8"))[
+        "capabilities"
+    ]
+    l1_ids = {item["id"] for item in entries if item["default_lens"] == "L1"}
+
     assert main(argv) == 0
     payload = json.loads(capsys.readouterr().out)
-    assert payload == capabilities_for("L1").model_dump(mode="json")
+
+    assert payload["lens"] == "L1"
+    assert {item["id"] for item in payload["capabilities"]} == l1_ids
     assert not [item for item in payload["capabilities"] if item["people_data"]]
+    assert {item["id"] for item in payload["teasers"]} == {item["id"] for item in entries} - l1_ids
+    for teaser in payload["teasers"]:
+        assert teaser["unlock_lens"] in {"L2", "L3", "L4"}
+        assert "cli" not in teaser and "api" not in teaser
 
 
 def test_capabilities_defaults_to_the_technical_lens(capsys) -> None:
@@ -120,6 +131,16 @@ def test_doctor_accepts_latest_tag_for_untagged_model(tmp_path, capsys, monkeypa
 def test_doctor_skips_probe_when_no_feature_uses_ollama(tmp_path, capsys, monkeypatch) -> None:
     monkeypatch.setattr(settings, "ollama_enabled", False)
     monkeypatch.setattr(settings, "analyst_provider", "local")
+    probe, calls = _probe(["anything"])
+    _, payload = _doctor(tmp_path, probe, capsys)
+    assert calls == []
+    assert payload["model"]["status"] == "NOT_SELECTED"
+
+
+def test_doctor_ignores_unsupported_analyst_provider_name(tmp_path, capsys, monkeypatch) -> None:
+    monkeypatch.setattr(settings, "ollama_enabled", False)
+    monkeypatch.setattr(settings, "analyst_enabled", True)
+    monkeypatch.setattr(settings, "analyst_provider", "ollama")
     probe, calls = _probe(["anything"])
     _, payload = _doctor(tmp_path, probe, capsys)
     assert calls == []

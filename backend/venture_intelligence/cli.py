@@ -231,7 +231,9 @@ def _parser() -> argparse.ArgumentParser:
     )
     demo_seed.add_argument("--seed", type=int, default=7, help="Deterministic dataset seed.")
     demo_seed.add_argument(
-        "--companies", type=int, default=12, help="Number of fictional companies (1-16)."
+        "--overwrite",
+        action="store_true",
+        help="Replace an existing non-empty database file (never the operational one).",
     )
 
     programs = commands.add_parser("programs").add_subparsers(dest="action", required=True)
@@ -435,12 +437,7 @@ def _sync_command(args: argparse.Namespace) -> Any:
     if args.command == "capabilities":
         return capabilities_for(args.lens)
     if args.command == "demo":
-        target = Path(args.database).resolve()
-        if target == Path(settings.db_path).resolve():
-            raise ValueError("refusing to write demo data into the operational database")
-        if not 1 <= args.companies <= 16:
-            raise ValueError("--companies must be between 1 and 16")
-        return _demo_seeder().seed_database(target, seed=args.seed, companies=args.companies)
+        return _demo_seeder().seed_database(args.database, seed=args.seed, overwrite=args.overwrite)
     registry = get_program_registry()
     database = _database(args.database)
     repository = BatchDiscoveryRepository(database)

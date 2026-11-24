@@ -172,8 +172,7 @@ def system_readiness(
                 status=ReadinessStatus.READY,
                 summary=(
                     "Local Ollama/Qwen is selected; runtime reachability requires doctor."
-                    if runtime_settings.analyst_enabled
-                    and runtime_settings.analyst_provider.casefold() in {"qwen", "auto"}
+                    if runtime_settings.analyst_uses_ollama
                     else (
                         "Deterministic grounded analysis is available; local Ollama/Qwen "
                         "is optional."
@@ -181,8 +180,7 @@ def system_readiness(
                 ),
                 action=(
                     "Verify the configured Ollama model with doctor."
-                    if runtime_settings.analyst_enabled
-                    and runtime_settings.analyst_provider.casefold() in {"qwen", "auto"}
+                    if runtime_settings.analyst_uses_ollama
                     else "Deterministic analyst is available without model configuration."
                 ),
             ),
@@ -368,10 +366,7 @@ async def ollama_tags_probe(base_url: str, timeout: float) -> list[str] | None:
 
 
 def _model_selected(runtime_settings: Settings) -> bool:
-    analyst_uses_ollama = runtime_settings.analyst_enabled and (
-        runtime_settings.analyst_provider.casefold() in {"qwen", "ollama", "auto"}
-    )
-    return bool(runtime_settings.ollama_enabled or analyst_uses_ollama)
+    return runtime_settings.ollama_enabled or runtime_settings.analyst_uses_ollama
 
 
 def _base_name(name: str) -> str:

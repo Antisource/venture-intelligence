@@ -108,6 +108,10 @@ class Settings(BaseSettings):
     api_host: str = "127.0.0.1"
     api_port: int = 8000
 
+    @property
+    def analyst_uses_ollama(self) -> bool:
+        return self.analyst_enabled and self.analyst_provider.casefold() in {"qwen", "auto"}
+
     @field_validator("connector_poll_interval")
     @classmethod
     def minimum_poll_interval(cls, value: int) -> int:

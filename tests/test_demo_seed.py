@@ -113,12 +113,11 @@ def test_seeded_databases_are_identical_for_the_same_seed(tmp_path: Path) -> Non
 
 def test_cli_demo_seed_writes_the_given_path(tmp_path: Path, capsys) -> None:
     path = tmp_path / "cli-demo.db"
-    assert main(
-        ["--json", "demo", "seed", "--database", str(path), "--seed", "2", "--companies", "3"]
-    ) == 0
+    assert main(["--json", "demo", "seed", "--database", str(path), "--seed", "2"]) == 0
     summary = json.loads(capsys.readouterr().out)
     assert summary["status"] == "seeded" and summary["seed"] == 2
-    assert summary["digest"] == _seeder().build_dataset(2, companies=3).digest()
+    assert summary["counts"]["companies"] == 12
+    assert summary["digest"] == _seeder().build_dataset(2).digest()
     assert len(_rows(path, "companies", "1")) == summary["counts"]["companies"]
 
 
@@ -126,6 +125,37 @@ def test_cli_demo_seed_refuses_the_operational_database(capsys) -> None:
     code = main(["--json", "demo", "seed", "--database", settings.db_path])
     assert code == 2
     assert "operational database" in json.loads(capsys.readouterr().out)["error"]
+
+
+def test_script_refuses_the_operational_database(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys
+) -> None:
+    operational = tmp_path / "intelligence.db"
+    monkeypatch.setattr(settings, "db_path", str(operational))
+    assert _seeder().main(["--database", str(operational)]) == 2
+    assert "operational database" in capsys.readouterr().err
+    assert not operational.exists()
+
+
+def test_seed_refuses_an_existing_database_unless_overwrite(tmp_path: Path, capsys) -> None:
+    path = tmp_path / "store.db"
+    Database(str(path)).write_alert(_seeder().build_dataset(1, companies=1).alerts[0])
+    before = _rows(path, "alerts", "alert_id")
+
+    assert main(["--json", "demo", "seed", "--database", str(path)]) == 2
+    assert "existing database" in json.loads(capsys.readouterr().out)["error"]
+    assert _rows(path, "alerts", "alert_id") == before
+
+    assert main(["--json", "demo", "seed", "--database", str(path), "--overwrite"]) == 0
+    summary = json.loads(capsys.readouterr().out)
+    assert len(_rows(path, "alerts", "1")) == summary["counts"]["alerts"]
+    assert len(_rows(path, "companies", "1")) == 12
+
+
+def test_seed_rejects_an_out_of_range_company_count(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="companies"):
+        _seeder().seed_database(tmp_path / "x.db", companies=0)
+    assert not (tmp_path / "x.db").exists()
 
 
 def test_cli_demo_seed_requires_a_database() -> None:

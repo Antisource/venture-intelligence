@@ -216,10 +216,7 @@ class AnalystAgent:
         self.provider = provider or self._provider_from_settings()
 
     def _provider_from_settings(self) -> ConversationalModelProvider:
-        if self.settings.analyst_enabled and self.settings.analyst_provider.casefold() in {
-            "qwen",
-            "auto",
-        }:
+        if self.settings.analyst_uses_ollama:
             return OllamaQwenProvider(self.settings)
         return self.fallback
 
