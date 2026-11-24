@@ -4,11 +4,14 @@ _Last updated: 2026-11-24_
 
 ## Current stage
 
-**S0 Foundation.** The git guards are in `revamp-main` (PR #1). PRs #2-#4
-(baseline docs, `storage/db/` split, `shared/models/` split) were merged into
-stack branches instead of `revamp-main`, because each targeted the previous
-stack branch. One PR with head `refactor/s0-split-shared-models` carries links
-2-4 into `revamp-main`.
+**S0 platform implementation.** The ADRs are in draft PR #8. Link 8
+(`feat/s0-postgres-platform`) adds the PostgreSQL platform skeleton: Alembic
+baseline with tier-1 append-only triggers, `import-sqlite`, an ephemeral
+Postgres test harness and CI job, `/livez` and `/readyz`, and the `local` and
+`demo` compose profiles. The app still runs on SQLite; domains port in later
+links. Earlier: the git guards are in `revamp-main` (PR #1); PRs #2-#4 were
+merged into stack branches instead of `revamp-main`; one PR with head `refactor/s0-split-shared-models` (#5) carries
+links 2-4 into `revamp-main`.
 
 ## Branches and PRs
 
@@ -29,7 +32,8 @@ PR #1 merge commit, "Merge pull request #1 ...", is not conventional).
 | 2-4 | `refactor/s0-split-shared-models` | `revamp-main` | #5 | carries links 2-4; ready for review, merge first |
 | 5 | `refactor/s0-split-api-routers` | `revamp-main` | #6 | pushed, CI green; depends on #5; draft until the S0 critic loop passes |
 | 6 | `test/s0-isolate-test-environment` | `revamp-main` | #7 | depends on #6; test-suite isolation from `.env`, `data/` and SMTP |
-| 7 | `docs/s0-architecture-adrs` | `revamp-main` | this link's PR | depends on #7; ADR-0001 to ADR-0008 and D-010 to D-021, all Proposed; no code changes |
+| 7 | `docs/s0-architecture-adrs` | `revamp-main` | #8 | draft; depends on #7; ADR-0001 to ADR-0008 and D-010 to D-021, all Proposed; no code changes |
+| 8 | `feat/s0-postgres-platform` | `revamp-main` | not opened | depends on #8; S0 Postgres platform skeleton (engine, baseline migration, importer, probes, compose) |
 
 ## Next actions
 
