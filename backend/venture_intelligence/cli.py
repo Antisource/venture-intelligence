@@ -13,6 +13,7 @@ from typing import Any
 
 from venture_intelligence.agents.analyst import AnalystAgent
 from venture_intelligence.batch_discovery.repository import BatchDiscoveryRepository
+from venture_intelligence.capabilities import Lens, capabilities_for
 from venture_intelligence.config import settings
 from venture_intelligence.intelligence.service import IntelligenceService
 from venture_intelligence.operations.cycle import (
@@ -61,6 +62,17 @@ def _emit(value: Any, *, as_json: bool) -> None:
             print(f"{item['component']}: {item['status']} — {item['summary']}")
         analyst = payload["analyst"]
         print(f"Local analyst runtime: {analyst['status']} ({analyst.get('provider', 'unknown')})")
+        return
+    if isinstance(payload, dict) and "lens" in payload and "teasers" in payload:
+        print(f"Lens {payload['lens']} ({payload['lens_title']})")
+        for item in payload["capabilities"]:
+            planned = f" [planned, {item['slice']}]" if item["status"] == "planned" else ""
+            command = f"  vi {item['cli']}" if item["cli"] else ""
+            print(f"- {item['title']}{planned}: {item['blurb']}{command}")
+        if payload["teasers"]:
+            print("Higher lenses add:")
+            for item in payload["teasers"]:
+                print(f"- {item['title']} ({item['unlock_lens']}): {item['teaser']}")
         return
     if isinstance(payload, dict):
         for key, item in payload.items():
@@ -176,6 +188,21 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--database", help="Use an explicit SQLite database path.")
     commands = parser.add_subparsers(dest="command", required=True, metavar="COMMAND")
     commands.add_parser("doctor", help="Check readiness and configuration (no secrets).")
+    capabilities = commands.add_parser(
+        "capabilities", help="List what this installation can do for a lens."
+    )
+    capabilities.add_argument(
+        "--lens",
+        choices=[item.value for item in Lens],
+        default=Lens.L4.value,
+        help="L1 Explorer, L2 Analyst, L3 Partner, L4 Technical VC (default).",
+    )
+    capabilities.add_argument(
+        "--json",
+        action="store_true",
+        default=argparse.SUPPRESS,
+        help="Emit machine-readable JSON.",
+    )
 
     programs = commands.add_parser("programs").add_subparsers(dest="action", required=True)
     programs.add_parser("list")
@@ -351,6 +378,8 @@ async def _async_command(args: argparse.Namespace) -> Any:
 
 
 def _sync_command(args: argparse.Namespace) -> Any:
+    if args.command == "capabilities":
+        return capabilities_for(args.lens)
     registry = get_program_registry()
     database = _database(args.database)
     repository = BatchDiscoveryRepository(database)

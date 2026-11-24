@@ -17,6 +17,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from venture_intelligence.api.routers import analyst as analyst_routes
+from venture_intelligence.api.routers import capabilities as capabilities_routes
 from venture_intelligence.api.routers import decisions as decisions_routes
 from venture_intelligence.api.routers import dependencies
 from venture_intelligence.api.routers import evaluation as evaluation_routes
@@ -66,6 +67,7 @@ app.add_middleware(
 )
 app.include_router(v1_router)
 app.include_router(batch_discovery_router)
+app.include_router(capabilities_routes.router)
 app.mount("/frontend", StaticFiles(directory=frontend_routes._frontend_root), name="frontend")
 
 # Unversioned dashboard routes. Include order is route-matching order: keep it.
