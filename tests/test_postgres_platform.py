@@ -51,7 +51,7 @@ def _seeded_sqlite(path) -> tuple[Database, CanonicalEvent]:
     event = _event()
     db.write_event(event)
     db.write_event(_event("yc__globex"))
-    db.write_company(Company(canonical_name="Acme Corp", slug="acme"))
+    db.write_company(Company(company_id="co_acme", canonical_name="Acme Corp", slug="acme"))
     db.write_person(Person(canonical_name="Ada Lovelace", github_username="ada"))
     db.write_observation(
         Observation(
@@ -120,12 +120,34 @@ _INSERTS = {
         "INSERT INTO events (event_id, event_type, entity_type, entity_id, source, source_url, "
         "occurred_at, observed_at, ingested_at, confidence) VALUES ('e1', 'company_listed', "
         "'company', 'yc__acme', 'yc_website', 'https://example.org', '2026-07-01T00:00:00+00:00', "
-        "'2026-07-01T00:00:00+00:00', '2026-07-01T00:00:00+00:00', 0.9)"
+        "'2026-07-01T00:00:00+00:00', '2026-07-01T00:00:00+00:00', 0.9)",
+        "confidence",
+        0.9,
+        "0.1",
     ),
     "observations": (
         "INSERT INTO observations (observation_id, event_id, entity_id, source, fact, "
         "observed_at, confidence) VALUES ('o1', 'e1', 'yc__acme', 'yc_website', 'listed', "
-        "'2026-07-01T00:00:00+00:00', 0.9)"
+        "'2026-07-01T00:00:00+00:00', 0.9)",
+        "confidence",
+        0.9,
+        "0.1",
+    ),
+    "candidate_rejections": (
+        "INSERT INTO candidate_rejections (rejection_id, candidate_label, entity_type, source, "
+        "source_url, reason, confidence, rejected_at) VALUES ('r1', 'Acme', 'company', "
+        "'yc_website', 'https://example.org', 'not a company', 0.9, '2026-07-01T00:00:00+00:00')",
+        "confidence",
+        0.9,
+        "0.1",
+    ),
+    "batch_discovery_observations": (
+        "INSERT INTO batch_discovery_observations (observation_id, run_id, program_id, batch_id, "
+        "hypothesis_key, observed_at, origin_key, stance, payload) VALUES ('b1', 'run1', 'yc', "
+        "'F26', 'yc:F26', '2026-07-01T00:00:00+00:00', 'origin1', 'supports', '{}')",
+        "stance",
+        "supports",
+        "'refutes'",
     ),
 }
 
@@ -135,7 +157,7 @@ _INSERTS = {
 @pytest.mark.parametrize(
     "statement",
     [
-        "UPDATE {table} SET confidence = 0.1",
+        "UPDATE {table} SET {column} = {changed}",
         "DELETE FROM {table}",
         "TRUNCATE {table}",
     ],
@@ -143,16 +165,19 @@ _INSERTS = {
 )
 def test_append_only_trigger_rejects_changes(migrated_postgres_url, table, statement) -> None:
     assert table in APPEND_ONLY_TABLES
+    insert, column, original, changed = _INSERTS[table]
     engine = create_engine(migrated_postgres_url)
     try:
         with engine.begin() as connection:
-            connection.execute(text(_INSERTS[table]))
+            connection.execute(text(insert))
         with pytest.raises(DBAPIError, match="vi_append_only"):
             with engine.begin() as connection:
-                connection.execute(text(statement.format(table=table)))
+                connection.execute(
+                    text(statement.format(table=table, column=column, changed=changed))
+                )
         with engine.connect() as connection:
-            row = connection.execute(text(f"SELECT confidence FROM {table}")).one()
-        assert row.confidence == 0.9
+            values = connection.execute(text(f"SELECT {column} FROM {table}")).scalars().all()
+        assert values == [original]
     finally:
         engine.dispose()
 
@@ -216,7 +241,7 @@ def test_import_sqlite_round_trips_a_database_built_by_the_current_class(
 
     # The source file is read only: nothing was written to it.
     assert _sqlite_counts(sqlite_path) == source_counts
-    assert db.get_company  # the source Database stays usable
+    assert db.get_company("co_acme").canonical_name == "Acme Corp"
 
 
 @pytest.mark.postgres

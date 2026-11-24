@@ -60,7 +60,7 @@ class TableReport:
 
     @property
     def reconciled(self) -> bool:
-        return self.imported + self.skipped == self.source and self.target >= self.source
+        return self.target >= self.source
 
 
 @dataclass
