@@ -42,6 +42,7 @@ config = "config"
 
 [project.scripts]
 venture-intelligence = "venture_intelligence.cli:main"
+vi = "venture_intelligence.cli:main"
 
 
 # ── uv settings ───────────────────────────────────────────────────────────────

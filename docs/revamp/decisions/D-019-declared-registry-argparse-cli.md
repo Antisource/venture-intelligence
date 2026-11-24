@@ -29,3 +29,21 @@
    `--json` output under both names. Exit codes 0, 1, 2 and 3 (P-073) are unchanged. The
    route table (71 routes) and `openapi.json` stay identical after `_compat.py` is
    deleted.
+
+## Addendum (2026-11-24): the S0 registry is YAML-backed
+
+The S0 link `feat/s0-capability-registry` ships the registry as data in
+`config/capabilities.yaml`, loaded and validated by
+`backend/venture_intelligence/capabilities/` (`registry.py`, `service.py`), not as
+code in `services/capabilities.py`. One file is the single source of truth that the
+CLI, the API and the UI can read without importing backend modules. The consistency
+checks are unchanged in spirit: unique ids, no people-level capability defaulting
+to L1, planned entries carry a slice and no command or route, and available entries
+name routes that exist in OpenAPI and commands that exist in the argparse parser.
+
+Deferred to later slices:
+
+- Registry fields `mcp_tool`, `egress`, `requires_role` and `rate_class`.
+- TOON output and generating the `vi` command tree from the registry (S5 AXI work).
+- The model report in `/readyz` (lands with the Postgres platform readiness work).
+- `vi demo seed` working outside a source checkout.

@@ -43,6 +43,7 @@ be hand-edited.
 | GET | `/api/health` | process/database health |
 | GET | `/api/stats` | event/entity counters |
 | GET | `/api/v1/programs` | active YAML registry |
+| GET | `/api/v1/capabilities?lens=L1..L4` | capability registry view for a lens (default L1) plus teasers for higher lenses; L1 never lists people-level data |
 | GET | `/api/v1/replay/contract` | read-only local replay contract; no execution |
 | GET | `/api/v1/intelligence/rankings` | versioned ranking intelligence and movement |
 | GET | `/api/v1/intelligence/entities/{entity_id}` | founder/company feature and evidence lineage |
