@@ -13,20 +13,25 @@
 
    Only three `SECURITY DEFINER` functions may change these rows:
    - **`vi_erase_subject`** tombstones personal fields, deletes derived rows, writes
-     `erasure_log` and adds the subject to `subject_suppressions`. The identity gate
-     checks suppressions, which implements opt-out. Because `erasure_log` is inside the
-     dump, every erasure also appends a content-free record (subject key hash, erased
-     row ids, timestamp, actor) to an append-only JSONL ledger on a separate volume. The
-     ledger is excluded from the dump and backed up alongside it. Restore replays it after
-     `pg_restore` and refuses to finish if replay fails, so erasures made after a backup
-     survive a restore.
+     `erasure_log` and adds the subject key hash to `subject_suppressions`. The identity
+     gate (P-227) checks suppressions by the same hash, which implements opt-out. Because
+     `erasure_log` is inside the dump, the erasure service (not the CLI command) also
+     writes a two-phase, content-free record to an append-only JSONL ledger on a separate
+     volume: an intent line (request id, subject key hash, erased row ids, timestamp,
+     actor) fsynced before commit, then a commit marker after commit. The ledger is
+     excluded from the dump and backed up alongside it. After `pg_restore`, restore
+     replays only committed intents through the row-id replay mode `vi_replay_erasure`
+     and refuses to finish if replay fails, so erasures made after a backup survive a
+     restore.
    - **Reconcile** (P-103, P-243) is kept, not retired. It may delete tier-2 rows of
      polluted entities, after archiving each one to `reconcile_archive`. It never touches
      tier 1: its in-place re-pointing of observations becomes appended bindings, and
      derived rows are rebuilt.
    - **`vi_purge_people_audit`**, the retention purge, deletes `people_query_audit` rows
      older than the retention period (12 months by default, configurable) and appends a
-     `maintenance_log` row for each run. It touches no other table.
+     `maintenance_log` row for each run. It reads the period from an owner-only settings
+     row that the owner-role `vi db upgrade` (the `migrate` service) syncs from
+     `PEOPLE_AUDIT_RETENTION_MONTHS`; `vi_app` cannot write it. It touches no other table.
 
    See ADR-0002, ADR-0005, ADR-0006 and D-021.
 2. **Owner instruction:** observations are immutable; people data supports erasure and

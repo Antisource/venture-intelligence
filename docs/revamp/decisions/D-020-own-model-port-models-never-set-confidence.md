@@ -29,4 +29,6 @@
    the evaluation harness catch provider API drift.
 4. **Parity:** the existing analyst and extractor tests (P-201, P-240, P-270) pass
    unchanged. The `OLLAMA_*`, `ANALYST_ENABLED` and `ANALYST_PROVIDER` variables
-   (P-330–P-337) keep their meaning, and `qwen` stays an alias for `ollama`.
+   (P-330, P-331, P-333–P-337) keep their meaning, and `qwen` stays an alias for `ollama`.
+   P-332, the `OLLAMA_MODEL` default, is an intended parity change to `granite3.3:2b`,
+   with readiness and `vi doctor` reporting a missing model explicitly (D-021).

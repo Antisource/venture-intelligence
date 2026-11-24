@@ -105,8 +105,11 @@
    `people_query_audit` row: actor, workspace, capability, lens, subject entity ids (or a
    query digest), result count, request id and time. Users see their own entries; admins
    see all. Rows are kept for 12 months (`PEOPLE_AUDIT_RETENTION_MONTHS`, default 12;
-   owner decision, D-021), then removed only by the ADR-0002 retention purge. Erasure and
-   opt-out use `vi admin erase-subject`, which calls the ADR-0002 function. The GDPR and DPDP mapping covers technical controls
+   owner decision, D-021), then removed only by the ADR-0002 retention purge. The owner-role
+   `vi db upgrade` in the `migrate` service syncs the setting into an owner-only row that
+   `vi_app` cannot write. Erasure and opt-out use `vi admin erase-subject`, which calls
+   the ADR-0002 erasure service, so the erasure ledger is written whichever caller
+   erases. The GDPR and DPDP mapping covers technical controls
    only and is not legal advice; check DPDP Rules timelines.
 9. **Secrets.**
    - Every secret setting is a `SecretStr`, which fixes the SMTP password.

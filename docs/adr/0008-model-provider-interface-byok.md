@@ -134,8 +134,12 @@
   storage; (6) the OpenAI-compatible and Anthropic adapters; (7) the harness in CI;
   (8) switch the default model in one change to the Python default, `.env.example`, the
   README and AGENTS.md, documenting the Modelfile as the optional Qwen custom model.
-- **Parity risks:** P-201, P-240, P-270 and P-330–P-337 must keep their meaning, and
-  existing `.env` files must keep working.
+- **Parity risks:** P-201, P-240, P-270, P-330, P-331 and P-333–P-337 must keep their
+  meaning, and existing `.env` files must keep working. P-332 (the `OLLAMA_MODEL`
+  default) is an intended parity change from `qwen2.5-coder:3b` to `granite3.3:2b`
+  (D-021). Readiness (`operations/readiness.py`, `/readyz`, ADR-0004) and `vi doctor`
+  report a missing configured model by name, with the pull command, instead of silently
+  degrading to the deterministic extractor.
 - **Default model licence (resolved, D-021):** the Hugging Face card for
   `Qwen/Qwen2.5-Coder-3B` lists the `qwen-research` licence, which is not
   OSI-compatible, so the default switches to `granite3.3:2b` (Apache-2.0) and Qwen stays

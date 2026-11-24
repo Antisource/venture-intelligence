@@ -28,8 +28,13 @@
    **Trade-off:** users without Docker carry the manual Postgres setup themselves. The
    new default model may extract less well than Qwen; the evaluation harness measures
    that before the switch lands.
-4. **Parity:** existing `.env` files that set `OLLAMA_MODEL` keep their model, and
-   `qwen` stays an alias for `ollama` (P-330–P-337). The Modelfile stays the optional Qwen
+4. **Parity:** P-332 is an intended parity change: the `OLLAMA_MODEL` default moves
+   from `qwen2.5-coder:3b` to `granite3.3:2b`. P-330, P-331 and P-333–P-337 keep their
+   meaning, existing `.env` files that set `OLLAMA_MODEL` keep their model, and `qwen`
+   stays an alias for `ollama`. An install that never set `OLLAMA_MODEL` may not have
+   pulled the new default, so readiness (`operations/readiness.py`, `/readyz`) and
+   `vi doctor` report a missing configured model by name, with the pull command, instead
+   of silently degrading to the deterministic extractor. The Modelfile stays the optional Qwen
    custom model, so `test_modelfile_uses_required_qwen_parameters` passes unchanged. The
    native commands (P-104, P-105) keep working for development against the compose
    database.

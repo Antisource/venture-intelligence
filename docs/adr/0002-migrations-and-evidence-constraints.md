@@ -37,7 +37,7 @@
 2. **Roles:**
    - `vi_owner` owns objects and runs migrations.
    - `vi_app` is the runtime role: not an owner, and `NOBYPASSRLS`.
-   - `vi_erasure` is used only by the erasure function.
+   - `vi_erasure` is used only by the erasure and erasure-replay functions.
    - `vi_readonly` runs backups.
 3. **Two tiers of write protection.** For both tiers, `vi_app` loses `UPDATE`, `DELETE`
    and `TRUNCATE`, and row-level `BEFORE UPDATE OR DELETE` triggers plus a
@@ -57,27 +57,44 @@
    `processed_at`, `ranked_at` and `notified_at`, so `/api/events` (P-009) is unchanged.
 4. **Exactly three audited maintenance paths (D-012).** Each is a `SECURITY DEFINER`
    function that sets a transaction-local flag the triggers honour; no other function or
-   role can set it.
+   role can set it. Erasure has two entry points that share one tombstoning routine.
    - **Erasure:** `vi_erase_subject(subject_ref, request_id)`, in one transaction:
      - replaces personal payload fields in tier-1 and tier-2 rows with a tombstone;
      - deletes derived rows;
-     - writes `erasure_log`;
-     - adds the subject to `subject_suppressions`.
+     - writes `erasure_log` with the request id, the subject key hash and the erased row
+       ids;
+     - adds the subject key hash to `subject_suppressions`.
 
-     The identity gate (P-227) checks `subject_suppressions` before accepting new
-     observations, which implements opt-out. Row ids, the source host and timestamps
-     survive as content-free tombstones, so audit counts stay coherent (owner decision,
-     D-021).
+     The subject key hash is a hash of the normalised subject identifier. It is the only
+     subject reference kept after erasure, and `subject_suppressions` is keyed by it.
+     The identity gate (P-227) hashes each candidate's subject identifier the same way
+     and checks `subject_suppressions` before accepting new observations, which
+     implements opt-out. Row ids, the source host and timestamps survive as content-free
+     tombstones, so audit counts stay coherent (owner decision, D-021).
+
+     **Replay mode:** `vi_replay_erasure(subject_key_hash, row_ids, request_id)` applies
+     the same tombstoning to the listed row ids, deletes their derived rows, writes
+     `erasure_log` and adds the hash to `subject_suppressions`. It needs no
+     `subject_ref`, is idempotent, and only the owner role that runs restore may execute
+     it (ADR-0005).
 
      **Erasure ledger outside the database.** `erasure_log` lives in the dump, so a
-     restore would lose every erasure made after the backup. `vi admin erase-subject`
-     therefore also appends one content-free JSON line (subject key hash, erased row ids,
-     timestamp, actor) to an append-only JSONL ledger at `ERASURE_LEDGER_PATH`. The ledger
-     sits on a separate volume, is excluded from the database dump and is backed up
-     alongside it (ADR-0005). The line is appended and fsynced before the erasure
-     transaction commits; if the append fails, the erasure rolls back. A line whose
-     transaction later fails is harmless, because replay is idempotent. Restore replays
-     the ledger (ADR-0005).
+     restore would lose every erasure made after the backup. The erasure service in the
+     service layer (ADR-0007), which every caller including `vi admin erase-subject` goes
+     through, therefore also writes a two-phase, content-free record to an append-only
+     JSONL ledger at `ERASURE_LEDGER_PATH`. The ledger sits on a separate volume, is
+     excluded from the database dump and is backed up alongside it (ADR-0005).
+     - **Intent:** before the transaction commits, the service appends and fsyncs an
+       intent line (request id, subject key hash, erased row ids, timestamp, actor). If
+       the append fails, the erasure rolls back.
+     - **Commit marker:** after the transaction commits, it appends and fsyncs a commit
+       line for that request id.
+     - **Resolution:** at service start and before every backup, each intent without a
+       marker is resolved against `erasure_log` by request id: a commit line if the row
+       exists, an abort line if not.
+
+     Restore replays only intents that have a commit line (ADR-0005), so an erasure that
+     never committed is never applied.
    - **Reconcile** (P-103, P-243) may delete tier-2 rows only. It first copies each row
      into `reconcile_archive(run_id, table, row)`, so polluted CRM and lifecycle history is
      recoverable. Today it is destroyed (`storage/cleanup.py:436-462`). Reconcile never
@@ -88,8 +105,10 @@
      `PEOPLE_AUDIT_RETENTION_MONTHS`; ADR-0006, D-021) and appends one
      `maintenance_log` row per run (cutoff, rows deleted, time, actor). It takes no
      arguments: it reads the period from an owner-only settings row, so `vi_app` can run
-     it from a daily job (ADR-0003) but cannot shorten retention. It touches no other
-     table.
+     it from a daily job (ADR-0003) but cannot shorten retention. `vi db upgrade`, run
+     under the owner role by the `migrate` service (item 1, ADR-0005), writes
+     `PEOPLE_AUDIT_RETENTION_MONTHS` into that row on every run; `vi_app` may read the
+     row but has no write access to it. The purge touches no other table.
 5. **Provenance is `NOT NULL`.**
    - `events.source`, `source_url` (`CHECK` non-empty, http or https), `observed_at` and
      `ingested_at` are required.
