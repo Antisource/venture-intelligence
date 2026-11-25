@@ -74,7 +74,10 @@ not use the operational database for destructive test setup.
 
 ## Temporary files
 
-Pytest writes to the ignored `.pytest-tmp/` directory. Python, Vite, coverage,
+Pytest writes to the ignored `.pytest-tmp/` directory. `tests/conftest.py`
+ignores `.env`, resets settings to code defaults, redirects every data path
+into a per-session `tmp/vi-test-data-*` directory removed at session end, and
+refuses real SMTP connections. Python, Vite, coverage,
 browser, and validation caches are ignored and may be removed at any time.
 Operational databases, generated knowledge, and user decisions are local state:
 they are ignored from Git but must not be deleted as routine cleanup.

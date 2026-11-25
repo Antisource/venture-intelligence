@@ -5,6 +5,8 @@ from ``config/programs.yaml`` by :mod:`venture_intelligence.programs`, keeping
 accelerator-specific data out of application and connector code.
 """
 
+import os
+
 from pydantic import SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -14,9 +16,16 @@ from venture_intelligence.shared.models import SourceAccessMode
 class Settings(BaseSettings):
     """Environment-tunable settings with conservative public-web defaults."""
 
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+    model_config = SettingsConfigDict(
+        env_file=os.environ.get("VENTURE_INTELLIGENCE_ENV_FILE", ".env"),
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
 
     db_path: str = "data/intelligence.db"
+    # PostgreSQL URL (ADR-0001). Unset means the SQLite ``db_path`` store is
+    # the only datastore; the Postgres platform is opt-in until domains port.
+    database_url: SecretStr | None = None
     programs_config_path: str = "config/programs.yaml"
     intelligence_watchlist_path: str = "config/intelligence_watchlists.yaml"
     knowledge_dir: str = "knowledge"
@@ -102,6 +111,10 @@ class Settings(BaseSettings):
     api_host: str = "127.0.0.1"
     api_port: int = 8000
 
+    @property
+    def analyst_uses_ollama(self) -> bool:
+        return self.analyst_enabled and self.analyst_provider.casefold() in {"qwen", "auto"}
+
     @field_validator("connector_poll_interval")
     @classmethod
     def minimum_poll_interval(cls, value: int) -> int:
@@ -163,7 +176,6 @@ class Settings(BaseSettings):
         if value < 300 or value > 604_800:
             raise ValueError("OPERATIONS_LOCK_STALE_SECONDS must be between 300 and 604800")
         return value
-
 
 
 settings = Settings()

@@ -48,7 +48,12 @@ uv run venture-intelligence sources status
 
 `doctor` reports database, registry/current batch, source readiness, indexed
 social policy, optional analyst, email and scheduler state without printing
-tokens, passwords or webhook URLs. `/#/system/runs` provides the same product-level
+tokens, passwords or webhook URLs. It also reports the default Ollama model as
+PRESENT, MISSING (with the `ollama pull` command), UNREACHABLE or NOT_SELECTED,
+and lists next steps from the capability registry (`config/capabilities.yaml`).
+`vi` is an alias of `venture-intelligence`; `vi capabilities --lens L1` lists
+what a lens can do. `vi demo seed --database data/demo.db` writes a fictional,
+synthetic dataset to a new file and refuses the operational database. `/#/system/runs` provides the same product-level
 readiness and retained cycle history.
 
 ## Credential and permission matrix
@@ -227,7 +232,8 @@ shows capability summaries and local analyst health, not the provider-policy dum
 Canonical collection: `uv run venture-intelligence --json cycle run --program yc_current`.
 The optional program argument can be omitted to use active configured programs.
 Do not supply a historical `--batch` to this production command; use replay for
-historical reconstruction. No new CLI dependency, entrypoint or framework was added.
+historical reconstruction. No new CLI dependency or framework was added; S0 later
+added the `vi` entrypoint alias and the `capabilities` and `demo` commands.
 
 Exit codes: 0 success; 1 partial/degraded/failed execution or inaccessible storage;
 2 invalid input or required user configuration; 3 overlapping cycle. Doctor's

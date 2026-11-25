@@ -1,0 +1,82 @@
+# Venture Intelligence containers (ADR-0005). Profiles:
+#   local  PostgreSQL + the API/UI on http://127.0.0.1:8000
+#   demo   the same plus a one-shot `migrate` service that upgrades Postgres
+#          before the API starts
+#
+#   docker compose --profile local up --build
+#   docker compose --profile local down        # add -v to delete the volumes
+#
+# Postgres data lives only in named volumes (NTFS bind mounts are slow and
+# break Postgres permissions on Docker Desktop for Windows) and the database
+# port is not published, so it cannot clash with a native Postgres on 5432.
+
+name: venture-intelligence
+
+x-app: &app
+  build:
+    context: .
+    target: app
+  image: venture-intelligence:local
+  environment:
+    DATABASE_URL: postgresql://vi:${POSTGRES_PASSWORD:-vi}@db:5432/vi
+    DB_PATH: data/intelligence.db
+    # Use a missing env file so a developer's .env is never baked in or read.
+    VENTURE_INTELLIGENCE_ENV_FILE: /app/.env.container
+    OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+  volumes:
+    - app-data:/app/data
+
+services:
+  db:
+    image: postgres:18
+    profiles: [local, demo]
+    environment:
+      POSTGRES_USER: vi
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-vi}
+      POSTGRES_DB: vi
+    volumes:
+      # postgres:18 keeps PGDATA in a versioned directory under this mount.
+      - pg-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vi -d vi"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+    restart: unless-stopped
+
+  migrate:
+    <<: *app
+    profiles: [demo]
+    command: ["python", "-m", "venture_intelligence.storage.pg", "upgrade"]
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    <<: *app
+    profiles: [local, demo]
+    ports:
+      - "127.0.0.1:${API_PORT:-8000}:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+        required: false
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/livez', timeout=3)"
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 15s
+    restart: unless-stopped
+
+volumes:
+  pg-data:
+  app-data:

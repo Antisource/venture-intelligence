@@ -5,14 +5,17 @@ from __future__ import annotations
 import argparse
 import asyncio
 import hashlib
+import importlib.util
 import json
 import sqlite3
+import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
 from venture_intelligence.agents.analyst import AnalystAgent
 from venture_intelligence.batch_discovery.repository import BatchDiscoveryRepository
+from venture_intelligence.capabilities import Lens, capabilities_for, help_hints
 from venture_intelligence.config import settings
 from venture_intelligence.intelligence.service import IntelligenceService
 from venture_intelligence.operations.cycle import (
@@ -22,7 +25,12 @@ from venture_intelligence.operations.cycle import (
     IntelligenceCycleService,
     OperationsStateStore,
 )
-from venture_intelligence.operations.readiness import system_readiness
+from venture_intelligence.operations.readiness import (
+    ModelProbe,
+    model_readiness,
+    ollama_tags_probe,
+    system_readiness,
+)
 from venture_intelligence.operations.validation import run_live_validation
 from venture_intelligence.pipeline.email import EmailNotificationService
 from venture_intelligence.programs import get_program_registry
@@ -61,6 +69,26 @@ def _emit(value: Any, *, as_json: bool) -> None:
             print(f"{item['component']}: {item['status']} — {item['summary']}")
         analyst = payload["analyst"]
         print(f"Local analyst runtime: {analyst['status']} ({analyst.get('provider', 'unknown')})")
+        model = payload.get("model")
+        if model:
+            print(f"Ollama model {model['model']}: {model['status']} — {model['summary']}")
+            if model.get("action"):
+                print(f"  Fix: {model['action']}")
+        if payload.get("help"):
+            print("Next steps:")
+            for hint in payload["help"]:
+                print(f"  {hint}")
+        return
+    if isinstance(payload, dict) and "lens" in payload and "teasers" in payload:
+        print(f"Lens {payload['lens']} ({payload['lens_title']})")
+        for item in payload["capabilities"]:
+            planned = f" [planned, {item['slice']}]" if item["status"] == "planned" else ""
+            command = f"  vi {item['cli']}" if item["cli"] else ""
+            print(f"- {item['title']}{planned}: {item['blurb']}{command}")
+        if payload["teasers"]:
+            print("Higher lenses add:")
+            for item in payload["teasers"]:
+                print(f"- {item['title']} ({item['unlock_lens']}): {item['teaser']}")
         return
     if isinstance(payload, dict):
         for key, item in payload.items():
@@ -176,6 +204,36 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--database", help="Use an explicit SQLite database path.")
     commands = parser.add_subparsers(dest="command", required=True, metavar="COMMAND")
     commands.add_parser("doctor", help="Check readiness and configuration (no secrets).")
+    capabilities = commands.add_parser(
+        "capabilities", help="List what this installation can do for a lens."
+    )
+    capabilities.add_argument(
+        "--lens",
+        choices=[item.value for item in Lens],
+        default=Lens.L4.value,
+        help="L1 Explorer, L2 Analyst, L3 Partner, L4 Technical VC (default).",
+    )
+    capabilities.add_argument(
+        "--json",
+        action="store_true",
+        default=argparse.SUPPRESS,
+        help="Emit machine-readable JSON.",
+    )
+    demo = commands.add_parser(
+        "demo", help="Synthetic demo data (fictional, never real people)."
+    ).add_subparsers(dest="action", required=True)
+    demo_seed = demo.add_parser(
+        "seed",
+        help="Write the synthetic demo dataset to a new database; to reseed, delete it "
+        "or choose a new path.",
+    )
+    demo_seed.add_argument(
+        "--database",
+        required=True,
+        default=argparse.SUPPRESS,
+        help="SQLite path to write; never the operational database.",
+    )
+    demo_seed.add_argument("--seed", type=int, default=7, help="Deterministic dataset seed.")
 
     programs = commands.add_parser("programs").add_subparsers(dest="action", required=True)
     programs.add_parser("list")
@@ -294,15 +352,24 @@ def _hours(value: str) -> float:
     raise ValueError("interval must use hours, for example 12h")
 
 
+def _doctor_help(model: Any) -> list[str]:
+    steps = [model.action] if model.action else []
+    return steps + help_hints(Lens.L4, exclude={"system_health"})
+
+
 async def _async_command(args: argparse.Namespace) -> Any:
     registry = get_program_registry()
     if args.command == "doctor":
         readiness = system_readiness(
             settings.model_copy(update={"db_path": args.database or settings.db_path})
         )
+        probe = getattr(args, "model_probe", None) or ollama_tags_probe
+        model = await model_readiness(settings, probe=probe)
         return {
             "readiness": readiness,
             "analyst": await AnalystAgent().health(),
+            "model": model,
+            "help": _doctor_help(model),
             "database": str(Path(args.database or settings.db_path).resolve()),
             "secrets_redacted": True,
         }
@@ -350,7 +417,26 @@ async def _async_command(args: argparse.Namespace) -> Any:
     raise RuntimeError("not an asynchronous command")
 
 
+def _demo_seeder() -> Any:
+    """Load ``scripts/demo/seed.py`` from the source checkout."""
+    path = Path(__file__).resolve().parents[2] / "scripts" / "demo" / "seed.py"
+    if not path.is_file():
+        raise RuntimeError("The demo seeder is only available in a source checkout.")
+    name = "venture_intelligence_demo_seed"
+    if name in sys.modules:
+        return sys.modules[name]
+    spec = importlib.util.spec_from_file_location(name, path)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
 def _sync_command(args: argparse.Namespace) -> Any:
+    if args.command == "capabilities":
+        return capabilities_for(args.lens)
+    if args.command == "demo":
+        return _demo_seeder().seed_database(args.database, seed=args.seed)
     registry = get_program_registry()
     database = _database(args.database)
     repository = BatchDiscoveryRepository(database)
@@ -554,9 +640,10 @@ def _markdown_export(payload: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def main(argv: list[str] | None = None) -> int:
+def main(argv: list[str] | None = None, *, model_probe: ModelProbe | None = None) -> int:
     parser = _parser()
     args = parser.parse_args(argv)
+    args.model_probe = model_probe  # injected Ollama probe for doctor (tests); None = real
     asynchronous = (
         args.command in {"doctor", "research", "analyst", "cycle"}
         or args.command == "sources"
