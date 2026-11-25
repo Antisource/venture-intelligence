@@ -25,9 +25,42 @@ PR #1 merge commit, "Merge pull request #1 ...", is not conventional).
 | 1 | `ci/s0-git-guards` | `revamp-main` | #1 | merged into `revamp-main` |
 | 2 | `docs/s0-revamp-baseline` | stack branch | #2 | merged into a stack branch; carried to `revamp-main` by the link 2-4 PR |
 | 3 | `refactor/s0-split-db-module` | stack branch | #3 | merged into a stack branch; carried to `revamp-main` by the link 2-4 PR |
-| 4 | `refactor/s0-split-shared-models` | stack branch | #4 | merged into a stack branch; this branch is the head of the link 2-4 PR into `revamp-main` |
-| 5 | `refactor/s0-split-api-routers` | `revamp-main` | not opened | next; own PR, depends on the link 2-4 PR |
-| 6 | `test/s0-isolate-test-environment` | `revamp-main` | not opened | next; own PR, states which PR it depends on |
+| 4 | `refactor/s0-split-shared-models` | stack branch | #4 | merged into a stack branch |
+| 2-4 | `refactor/s0-split-shared-models` | `revamp-main` | #5 | carries links 2-4; ready for review, merge first |
+| 5 | `refactor/s0-split-api-routers` | `revamp-main` | #6 | pushed, CI green; depends on #5; draft until the S0 critic loop passes |
+| 6 | `test/s0-isolate-test-environment` | `revamp-main` | this link's PR | depends on #6; test-suite isolation from `.env`, `data/` and SMTP |
+
+## Next actions
+
+1. Owner: merge #5, then #6, then the test-isolation PR, each with "Create a
+   merge commit" titled as the PR.
+2. Agent: finish the rest of S0 (architecture ADRs, Postgres migration path,
+   capability registry and lens skeleton, `vi doctor`, demo database, test and
+   critic harnesses), then run the S0 critic loop before marking S0 PRs ready.
+3. After each owner merge: merge `origin/revamp-main` forward through every
+   unmerged link.
+
+Local-only work: none. Every finished link is pushed.
+
+## Gate rehearsal (2026-11-20)
+
+Private throwaway repo `Antisource/nm-stack-rehearsal` (safe to delete). Results:
+
+| Check | Result |
+|---|---|
+| CI failure repaired | New `fix(gate): ...` commit on top; no rewrite |
+| Stacked PR base | PR #2 targets `feat/s1-alpha` via `--base-branch` |
+| Conflict with a moved base | Integrated with a merge commit, not a rebase; all pushed heads remain ancestors |
+| Gate merge-commit subject | **Not conventional** (`Merge remote-tracking branch ...`); mitigated by D-008 |
+
+First run failed because npm's `claude.cmd` wrapper mangles JSON arguments through
+cmd.exe; fixed with `agent_path_override` to the native `claude.exe` (global config).
+
+## Combined stack tip verification
+
+On `refactor/s0-split-api-routers` with links 1-4 merged in: `pytest` 375 passed,
+`ruff` clean, `openapi.json` unchanged, `tsc` clean.
+
 
 ## Preflight (2026-11-20)
 
