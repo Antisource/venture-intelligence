@@ -313,7 +313,10 @@ def test_readyz_checks_postgres_is_at_head(tmp_path, monkeypatch, postgres_url) 
     assert response.status_code == 503
     postgres = response.json()["checks"]["postgres"]
     assert postgres["ok"] is False and "upgrade" in postgres["reason"]
-    assert postgres_url.password is None or postgres_url.password not in response.text
+    # A leaked credential appears as the DSN or its ``:password@`` userinfo;
+    # a bare substring check would misfire on short passwords such as "vi".
+    assert rendered not in response.text
+    assert postgres_url.password is None or f":{postgres_url.password}@" not in response.text
 
     migrate.upgrade(postgres_url)
     response = client.get("/readyz")
