@@ -4,7 +4,7 @@ _Last updated: 2026-11-24_
 
 ## Current stage
 
-**S0 platform implementation.** The ADRs are in draft PR #8. Link 8
+**S0 platform implementation.** The ADRs are in draft PR #8. Link 9
 (`feat/s0-postgres-platform`) adds the PostgreSQL platform skeleton: Alembic
 baseline with tier-1 append-only triggers, `import-sqlite`, an ephemeral
 Postgres test harness and CI job, `/livez` and `/readyz`, and the `local` and
