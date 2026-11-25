@@ -29,6 +29,26 @@ PR #1 merge commit, "Merge pull request #1 ...", is not conventional).
 | 5 | `refactor/s0-split-api-routers` | `revamp-main` | not opened | next; own PR, depends on the link 2-4 PR |
 | 6 | `test/s0-isolate-test-environment` | `revamp-main` | not opened | next; own PR, states which PR it depends on |
 
+## Gate rehearsal (2026-11-20)
+
+Private throwaway repo `Antisource/nm-stack-rehearsal` (safe to delete). Results:
+
+| Check | Result |
+|---|---|
+| CI failure repaired | New `fix(gate): ...` commit on top; no rewrite |
+| Stacked PR base | PR #2 targets `feat/s1-alpha` via `--base-branch` |
+| Conflict with a moved base | Integrated with a merge commit, not a rebase; all pushed heads remain ancestors |
+| Gate merge-commit subject | **Not conventional** (`Merge remote-tracking branch ...`); mitigated by D-008 |
+
+First run failed because npm's `claude.cmd` wrapper mangles JSON arguments through
+cmd.exe; fixed with `agent_path_override` to the native `claude.exe` (global config).
+
+## Combined stack tip verification
+
+On `refactor/s0-split-api-routers` with links 1-4 merged in: `pytest` 375 passed,
+`ruff` clean, `openapi.json` unchanged, `tsc` clean.
+
+
 ## Preflight (2026-11-20)
 
 | Item | Result |
