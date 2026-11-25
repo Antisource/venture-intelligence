@@ -76,7 +76,9 @@ def _grounded_analyst_context(question: str) -> dict:
     candidates: list[dict] = []
     citations: list[dict[str, str]] = [
         {"label": item["claim"], "url": url}
-        for entity in entities for item in entity["evidence"] for url in item["source_urls"]
+        for entity in entities
+        for item in entity["evidence"]
+        for url in item["source_urls"]
     ]
     terms = {token for token in question.casefold().replace("?", " ").split() if len(token) > 2}
     for program in get_program_registry().active():
@@ -134,12 +136,8 @@ def _grounded_analyst_context(question: str) -> dict:
                     "promotion_blockers": candidate.assessment.promotion_blockers,
                     "why_now": candidate.why_now,
                     "next_best_checks": candidate.assessment.next_best_checks,
-                    "source_coverage": candidate.assessment.source_coverage.model_dump(
-                        mode="json"
-                    ),
-                    "investment_attention_pct": (
-                        candidate.profile.investment_attention_pct
-                    ),
+                    "source_coverage": candidate.assessment.source_coverage.model_dump(mode="json"),
+                    "investment_attention_pct": (candidate.profile.investment_attention_pct),
                     "sources": sources,
                 }
             )

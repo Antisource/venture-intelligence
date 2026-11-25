@@ -158,11 +158,7 @@ async def list_source_policies() -> SourcePolicyResponse:
             last_successful_fetch_at=(
                 product_hunt_checked_at if product_hunt_health == "healthy" else None
             ),
-            note=(
-                product_hunt_diagnostic.error
-                if product_hunt_diagnostic is not None
-                else None
-            ),
+            note=(product_hunt_diagnostic.error if product_hunt_diagnostic is not None else None),
         )
     )
     return SourcePolicyResponse(

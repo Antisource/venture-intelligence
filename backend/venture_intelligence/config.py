@@ -178,5 +178,4 @@ class Settings(BaseSettings):
         return value
 
 
-
 settings = Settings()
