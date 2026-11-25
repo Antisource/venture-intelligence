@@ -300,6 +300,28 @@ def test_readyz_is_503_until_sqlite_exists_and_never_creates_it(tmp_path, monkey
     assert response.json() == {"status": "ready", "checks": {"sqlite": {"ok": True}}}
 
 
+def test_readyz_is_503_for_a_malformed_database_url(tmp_path, monkeypatch) -> None:
+    db_path = tmp_path / "ready.db"
+    Database(str(db_path))
+    monkeypatch.setattr(settings, "db_path", str(db_path))
+    monkeypatch.setattr(settings, "database_url", SecretStr("localhost:5432/vi"))
+
+    response = TestClient(app).get("/readyz")
+    assert response.status_code == 503
+    assert response.json()["checks"]["postgres"] == {
+        "ok": False,
+        "reason": "DATABASE_URL is not a PostgreSQL psycopg URL",
+    }
+
+
+@pytest.mark.parametrize(
+    "command", [["upgrade"], ["current"], ["import-sqlite", "--sqlite", "x.db"]]
+)
+def test_cli_refuses_a_malformed_database_url(command, capsys) -> None:
+    assert pg_main(["--database-url", "localhost:5432/vi", *command]) == 2
+    assert "not a valid database URL" in capsys.readouterr().err
+
+
 @pytest.mark.postgres
 def test_readyz_checks_postgres_is_at_head(tmp_path, monkeypatch, postgres_url) -> None:
     db_path = tmp_path / "ready.db"

@@ -18,6 +18,7 @@ from typing import Any
 
 from sqlalchemy import Connection, Engine, create_engine
 from sqlalchemy.engine import URL, make_url
+from sqlalchemy.exc import ArgumentError
 
 _DRIVER = "postgresql+psycopg"
 _ENGINES: dict[str, Engine] = {}
@@ -35,7 +36,10 @@ def normalize_url(url: str | URL) -> URL:
     rewritten to ``postgresql+psycopg://``; any other driver is rejected so a
     misconfigured URL fails loudly instead of loading an unexpected DBAPI.
     """
-    parsed = make_url(url) if isinstance(url, str) else url
+    try:
+        parsed = make_url(url) if isinstance(url, str) else url
+    except ArgumentError as exc:
+        raise ValueError("DATABASE_URL is not a valid database URL") from exc
     backend, _, driver = parsed.drivername.partition("+")
     if backend not in {"postgres", "postgresql"}:
         raise ValueError(f"DATABASE_URL must be a PostgreSQL URL, got {backend!r}")
