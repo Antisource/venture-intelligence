@@ -1,0 +1,274 @@
+# Capability registry: the single source of truth for what the product can do.
+#
+# Each entry drives UI teasers, `vi` help hints and "What else can this do?".
+# Lenses are views, not a security boundary: L1 Explorer, L2 Analyst,
+# L3 Partner, L4 Technical VC (everything). A higher lens sees every
+# capability of the lower lenses.
+#
+# Rules (checked by venture_intelligence.capabilities.registry and its tests):
+#   * ids are unique;
+#   * people_data capabilities never default to L1 (L1 is company-level only);
+#   * `available` entries name a CLI command that exists in the argparse parser
+#     and an API route that exists in the FastAPI app (either may be null);
+#   * `planned` entries name the slice (S1-S5) that delivers them and leave
+#     cli/api null until they exist.
+version: 1
+capabilities:
+  # ── L1 Explorer: company-level, no people-level or stealth data ────────────
+  - id: programs
+    title: Programs
+    blurb: See which accelerator programs and batches are tracked.
+    default_lens: L1
+    teaser: Browse the accelerator programs and batches being tracked.
+    cli: programs list
+    api: {method: GET, route: /api/v1/programs}
+    people_data: false
+    status: available
+  - id: capabilities
+    title: What else can this do?
+    blurb: List what this installation can do for your lens and what the next lens adds.
+    default_lens: L1
+    teaser: See everything this installation can do.
+    cli: capabilities
+    api: {method: GET, route: /api/v1/capabilities}
+    people_data: false
+    status: available
+  - id: company_explorer
+    title: Company explorer
+    blurb: Browse discovered companies without any founder or stealth details.
+    default_lens: L1
+    teaser: A company-only view of discovered companies.
+    cli: null
+    api: null
+    people_data: false
+    status: planned
+    slice: S1
+
+  # ── L2 Analyst ─────────────────────────────────────────────────────────────
+  - id: inbox
+    title: Inbox
+    blurb: Review new leads, material changes and alerts that need attention.
+    default_lens: L2
+    teaser: Get a prioritised inbox of new leads and changes.
+    cli: inbox
+    api: {method: GET, route: /api/alerts}
+    people_data: true
+    status: available
+  - id: discover
+    title: Discover
+    blurb: Find candidate companies and founders surfaced from public signals.
+    default_lens: L2
+    teaser: Find candidate founders and companies from public signals.
+    cli: discovery candidates
+    api: {method: GET, route: /api/v1/batch-discovery}
+    people_data: true
+    status: available
+  - id: research
+    title: Research
+    blurb: Run a bounded public-source research pass on a company or person.
+    default_lens: L2
+    teaser: Run a bounded research pass on any name.
+    cli: research <query>
+    api: {method: POST, route: /api/v1/research}
+    people_data: true
+    status: available
+  - id: founder_view
+    title: Founder and company view
+    blurb: Open one founder or company with its identity status, evidence and ranking.
+    default_lens: L2
+    teaser: Open a full profile for a founder or company.
+    cli: candidate show <candidate_id>
+    api: {method: GET, route: "/api/v1/intelligence/entities/{entity_id}"}
+    people_data: true
+    status: available
+  - id: evidence
+    title: Evidence and provenance
+    blurb: See every claim with its sources, when it was observed and how it was attributed.
+    default_lens: L2
+    teaser: Trace every claim back to its sources.
+    cli: candidate evidence <candidate_id>
+    api: {method: GET, route: "/api/v1/knowledge/{entity_id}"}
+    people_data: true
+    status: available
+  - id: rankings
+    title: Rankings
+    blurb: Rank validated founders and companies with an explanation for each score.
+    default_lens: L2
+    teaser: Ranked founders and companies with reasons.
+    cli: rankings list
+    api: {method: GET, route: /api/v1/intelligence/rankings}
+    people_data: true
+    status: available
+  - id: graph
+    title: Relationship graph
+    blurb: Explore how founders, companies, programs and sources connect.
+    default_lens: L2
+    teaser: Explore how founders, companies and programs connect.
+    cli: graph show <entity_id>
+    api: {method: GET, route: /api/v1/graph}
+    people_data: true
+    status: available
+  - id: analyst
+    title: Analyst assistant
+    blurb: Ask questions answered only from collected evidence, with citations.
+    default_lens: L2
+    teaser: Ask evidence-grounded questions with citations.
+    cli: analyst ask <question>
+    api: {method: POST, route: /api/analyst/chat}
+    people_data: true
+    status: available
+  - id: founder_report_card
+    title: Founder report card
+    blurb: One consistent report card per founder, with evidence behind every dimension.
+    default_lens: L2
+    teaser: A consistent, evidence-backed report card per founder.
+    cli: null
+    api: null
+    people_data: true
+    status: planned
+    slice: S2
+  - id: identity_resolution
+    title: Identity resolution
+    blurb: Answer "which person is this?" and re-point evidence when identities are merged or split.
+    default_lens: L2
+    teaser: Resolve which person a piece of evidence belongs to.
+    cli: null
+    api: null
+    people_data: true
+    status: planned
+    slice: S2
+
+  # ── L3 Partner ─────────────────────────────────────────────────────────────
+  - id: crm_pipeline
+    title: Pipeline and decisions
+    blurb: Track opportunities through your pipeline and record decisions and notes.
+    default_lens: L3
+    teaser: Track opportunities and decisions in a pipeline.
+    cli: null
+    api: {method: GET, route: /api/v1/decisions}
+    people_data: true
+    status: available
+  - id: email_digest
+    title: Email digest
+    blurb: Preview or send a partner digest of the strongest candidates and changes.
+    default_lens: L3
+    teaser: Get a partner digest by email.
+    cli: email preview --digest
+    api: {method: POST, route: /api/settings/email/digest}
+    people_data: true
+    status: available
+  - id: thesis
+    title: Investment thesis
+    blurb: Write a versioned investment thesis and see every score explained against it.
+    default_lens: L3
+    teaser: Score opportunities against your own written thesis.
+    cli: null
+    api: null
+    people_data: false
+    status: planned
+    slice: S1
+  - id: mandate_shortlist
+    title: Mandate shortlist
+    blurb: Turn a mandate into a shortlist of matching founders and companies.
+    default_lens: L3
+    teaser: Turn a mandate into a ranked shortlist.
+    cli: null
+    api: null
+    people_data: true
+    status: planned
+    slice: S1
+  - id: delivery_gateway
+    title: Delivery gateway
+    blurb: Reliable delivery of digests and alerts with a visible outbox and retry status.
+    default_lens: L3
+    teaser: Reliable digest and alert delivery with status you can see.
+    cli: null
+    api: null
+    people_data: false
+    status: planned
+    slice: S3
+  - id: warm_intros
+    title: Warm introductions
+    blurb: Suggest warm introduction paths from relationship data you import yourself.
+    default_lens: L3
+    teaser: Find warm introduction paths from your own data.
+    cli: null
+    api: null
+    people_data: true
+    status: planned
+    slice: S4
+
+  # ── L4 Technical VC ────────────────────────────────────────────────────────
+  - id: system_health
+    title: System health
+    blurb: Check readiness, configuration and the local model without showing secrets.
+    default_lens: L4
+    teaser: Check that every part of the system is ready.
+    cli: doctor
+    api: {method: GET, route: /api/v1/system/readiness}
+    people_data: false
+    status: available
+  - id: sources
+    title: Sources and source health
+    blurb: See which public sources are used, their policies and how they are performing.
+    default_lens: L4
+    teaser: See which public sources feed the system and how healthy they are.
+    cli: sources status
+    api: {method: GET, route: /api/v1/sources}
+    people_data: false
+    status: available
+  - id: runs_scheduler
+    title: Runs and scheduler
+    blurb: Inspect intelligence cycles and control the scheduler.
+    default_lens: L4
+    teaser: Inspect and schedule intelligence runs.
+    cli: scheduler status
+    api: {method: GET, route: /api/v1/cycles}
+    people_data: false
+    status: available
+  - id: replay
+    title: Replay
+    blurb: Rebuild what the system knew at a past cutoff in an isolated store.
+    default_lens: L4
+    teaser: Replay what the system knew at any past date.
+    cli: null
+    api: {method: GET, route: /api/v1/replay/contract}
+    people_data: false
+    status: available
+  - id: evaluation
+    title: Evaluation
+    blurb: Measure precision, recall and lead time against ground truth.
+    default_lens: L4
+    teaser: Measure how accurate and early the system is.
+    cli: null
+    api: {method: GET, route: /api/v1/evaluations}
+    people_data: false
+    status: available
+  - id: osint_tools
+    title: Local OSINT tools
+    blurb: Optional local username tools (Maigret, Sherlock) whose matches stay clues only.
+    default_lens: L4
+    teaser: Optional local OSINT tools for public-profile corroboration.
+    cli: null
+    api: {method: GET, route: /api/v1/batch-discovery/contract}
+    people_data: true
+    status: available
+  - id: exports
+    title: Exports
+    blurb: Export a candidate with its evidence as JSON or Markdown.
+    default_lens: L4
+    teaser: Export candidates with their evidence.
+    cli: candidate export <candidate_id> --format markdown
+    api: null
+    people_data: true
+    status: available
+  - id: mcp
+    title: MCP server
+    blurb: Use these capabilities from AI agents through the Model Context Protocol.
+    default_lens: L4
+    teaser: Use the system from AI agents over MCP.
+    cli: null
+    api: null
+    people_data: true
+    status: planned
+    slice: S5

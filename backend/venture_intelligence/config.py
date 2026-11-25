@@ -5,6 +5,8 @@ from ``config/programs.yaml`` by :mod:`venture_intelligence.programs`, keeping
 accelerator-specific data out of application and connector code.
 """
 
+import os
+
 from pydantic import SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -14,7 +16,11 @@ from venture_intelligence.shared.models import SourceAccessMode
 class Settings(BaseSettings):
     """Environment-tunable settings with conservative public-web defaults."""
 
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+    model_config = SettingsConfigDict(
+        env_file=os.environ.get("VENTURE_INTELLIGENCE_ENV_FILE", ".env"),
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
 
     db_path: str = "data/intelligence.db"
     programs_config_path: str = "config/programs.yaml"
@@ -101,6 +107,10 @@ class Settings(BaseSettings):
     email_smtp_from: str | None = None
     api_host: str = "127.0.0.1"
     api_port: int = 8000
+
+    @property
+    def analyst_uses_ollama(self) -> bool:
+        return self.analyst_enabled and self.analyst_provider.casefold() in {"qwen", "auto"}
 
     @field_validator("connector_poll_interval")
     @classmethod

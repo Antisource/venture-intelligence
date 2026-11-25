@@ -1,6 +1,6 @@
 # Revamp status
 
-_Last updated: 2026-11-23_
+_Last updated: 2026-11-24_
 
 ## Current stage
 
@@ -25,9 +25,53 @@ PR #1 merge commit, "Merge pull request #1 ...", is not conventional).
 | 1 | `ci/s0-git-guards` | `revamp-main` | #1 | merged into `revamp-main` |
 | 2 | `docs/s0-revamp-baseline` | stack branch | #2 | merged into a stack branch; carried to `revamp-main` by the link 2-4 PR |
 | 3 | `refactor/s0-split-db-module` | stack branch | #3 | merged into a stack branch; carried to `revamp-main` by the link 2-4 PR |
-| 4 | `refactor/s0-split-shared-models` | stack branch | #4 | merged into a stack branch; this branch is the head of the link 2-4 PR into `revamp-main` |
-| 5 | `refactor/s0-split-api-routers` | `revamp-main` | not opened | next; own PR, depends on the link 2-4 PR |
-| 6 | `test/s0-isolate-test-environment` | `revamp-main` | not opened | next; own PR, states which PR it depends on |
+| 4 | `refactor/s0-split-shared-models` | stack branch | #4 | merged into a stack branch |
+| 2-4 | `refactor/s0-split-shared-models` | `revamp-main` | #5 | carries links 2-4; ready for review, merge first |
+| 5 | `refactor/s0-split-api-routers` | `revamp-main` | #6 | pushed, CI green; depends on #5; draft until the S0 critic loop passes |
+| 6 | `test/s0-isolate-test-environment` | `revamp-main` | #7 | depends on #6; test-suite isolation from `.env`, `data/` and SMTP |
+| 7 | `docs/s0-architecture-adrs` | `revamp-main` | #8 | depends on #7; ADR-0001 to ADR-0008 and D-010 to D-021, all Proposed; no code changes |
+| 8 | `feat/s0-capability-registry` | `revamp-main` | this link's PR | depends on #8; capability registry and lens view, `vi capabilities`, `vi doctor` model report, `vi demo seed` |
+
+## Next actions
+
+1. Owner: merge #5, then #6, then #7, then the ADR PR, each with "Create a
+   merge commit" titled as the PR. Review the Proposed ADRs (`docs/adr/`).
+2. Agent: finish the rest of S0 (Postgres migration path, test and critic
+   harnesses), then run the S0 critic loop before marking S0 PRs ready. Done:
+   capability registry and lens skeleton, `vi doctor`, demo database (link 8).
+3. After each owner merge: merge `origin/revamp-main` forward through every
+   unmerged link.
+
+Local-only work: none. Every finished link is pushed.
+
+### Deferred from the S0 registry
+
+Recorded in the D-019 addendum (`docs/revamp/decisions/D-019-declared-registry-argparse-cli.md`):
+
+- Registry fields `mcp_tool`, `egress`, `requires_role` and `rate_class`.
+- TOON output and generating the `vi` command tree from the registry (S5).
+- The model report in `/readyz` (with the Postgres platform readiness work).
+- `vi demo seed` working outside a source checkout.
+
+## Gate rehearsal (2026-11-20)
+
+Private throwaway repo `Antisource/nm-stack-rehearsal` (safe to delete). Results:
+
+| Check | Result |
+|---|---|
+| CI failure repaired | New `fix(gate): ...` commit on top; no rewrite |
+| Stacked PR base | PR #2 targets `feat/s1-alpha` via `--base-branch` |
+| Conflict with a moved base | Integrated with a merge commit, not a rebase; all pushed heads remain ancestors |
+| Gate merge-commit subject | **Not conventional** (`Merge remote-tracking branch ...`); mitigated by D-008 |
+
+First run failed because npm's `claude.cmd` wrapper mangles JSON arguments through
+cmd.exe; fixed with `agent_path_override` to the native `claude.exe` (global config).
+
+## Combined stack tip verification
+
+On `refactor/s0-split-api-routers` with links 1-4 merged in: `pytest` 375 passed,
+`ruff` clean, `openapi.json` unchanged, `tsc` clean.
+
 
 ## Preflight (2026-11-20)
 

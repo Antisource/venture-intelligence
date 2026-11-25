@@ -599,6 +599,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/capabilities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Capabilities
+         * @description Return the capabilities visible to a lens plus teasers for higher lenses.
+         */
+        get: operations["list_capabilities_api_v1_capabilities_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/cycles": {
         parameters: {
             query?: never;
@@ -1280,6 +1300,16 @@ export interface components {
             /** Question */
             question: string;
         };
+        /** ApiRoute */
+        ApiRoute: {
+            /**
+             * Method
+             * @enum {string}
+             */
+            method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+            /** Route */
+            route: string;
+        };
         /** BatchCandidateDetailResponse */
         BatchCandidateDetailResponse: {
             candidate: components["schemas"]["CandidateHypothesis"];
@@ -1914,6 +1944,48 @@ export interface components {
          * @enum {string}
          */
         CandidateState: "discovered" | "suspected" | "corroborated" | "high_confidence" | "confirmed" | "uncertain" | "rejected";
+        /**
+         * CapabilityStatus
+         * @enum {string}
+         */
+        CapabilityStatus: "available" | "planned";
+        /**
+         * CapabilityTeaser
+         * @description What a higher lens adds, shown without its command or route.
+         */
+        CapabilityTeaser: {
+            /** Id */
+            id: string;
+            /** Slice */
+            slice?: string | null;
+            status: components["schemas"]["CapabilityStatus"];
+            /** Teaser */
+            teaser: string;
+            /** Title */
+            title: string;
+            unlock_lens: components["schemas"]["Lens"];
+        };
+        /**
+         * CapabilityView
+         * @description A capability the requested lens can use (or will, when planned).
+         */
+        CapabilityView: {
+            api: components["schemas"]["ApiRoute"] | null;
+            /** Blurb */
+            blurb: string;
+            /** Cli */
+            cli: string | null;
+            default_lens: components["schemas"]["Lens"];
+            /** Id */
+            id: string;
+            /** People Data */
+            people_data: boolean;
+            /** Slice */
+            slice?: string | null;
+            status: components["schemas"]["CapabilityStatus"];
+            /** Title */
+            title: string;
+        };
         /**
          * ClaimStatus
          * @enum {string}
@@ -3297,6 +3369,22 @@ export interface components {
              * Format: date-time
              */
             updated_at?: string;
+        };
+        /**
+         * Lens
+         * @description Product lenses, ordered from least to most detail. Views, not security.
+         * @enum {string}
+         */
+        Lens: "L1" | "L2" | "L3" | "L4";
+        /** LensCapabilities */
+        LensCapabilities: {
+            /** Capabilities */
+            capabilities: components["schemas"]["CapabilityView"][];
+            lens: components["schemas"]["Lens"];
+            /** Lens Title */
+            lens_title: string;
+            /** Teasers */
+            teasers: components["schemas"]["CapabilityTeaser"][];
         };
         /** LineageEdge */
         LineageEdge: {
@@ -6394,6 +6482,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BatchCandidateDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_capabilities_api_v1_capabilities_get: {
+        parameters: {
+            query?: {
+                /** @description Lens to view: L1 Explorer, L2 Analyst, L3 Partner, L4 Technical VC. */
+                lens?: components["schemas"]["Lens"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LensCapabilities"];
                 };
             };
             /** @description Validation Error */
