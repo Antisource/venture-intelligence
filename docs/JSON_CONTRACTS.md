@@ -1,6 +1,6 @@
 # JSON Contracts
 
-Pydantic models in `backend/venture_intelligence/shared/models.py` are the canonical
+Pydantic models in `backend/venture_intelligence/shared/models/` are the canonical
 cross-component contracts. API routes use request models and JSON response
 models; the EventBus serializes `CanonicalEvent` into SQLite; the frontend
 generates TypeScript declarations from FastAPI OpenAPI and consumes the JSON

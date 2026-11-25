@@ -1,8 +1,8 @@
 # Data model
 
 The backend uses Pydantic models at service boundaries and SQLite for durable
-state. `backend/venture_intelligence/shared/models.py` is the canonical schema
-module; rows are serialized as JSON-compatible dictionaries before crossing the
+state. `backend/venture_intelligence/shared/models/` is the canonical schema
+package; rows are serialized as JSON-compatible dictionaries before crossing the
 API or EventBus boundary.
 
 Core records are `Person`, `Company`, `Program`, `CanonicalEvent`, `Evidence`,
